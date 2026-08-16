@@ -3,6 +3,7 @@ import { measureTcpLatency } from "./latency-probe.mjs";
 
 const IF_X_TABLE = "1.3.6.1.2.1.31.1.1";
 const IF_X_COLUMNS = [1, 6, 10, 15, 18];
+const IF_TABLE_ENTRY = "1.3.6.1.2.1.2.2.1";
 const IP_NET_TO_MEDIA_TABLE = "1.3.6.1.2.1.4.22";
 const IP_NET_TO_MEDIA_COLUMNS = [1, 2, 4];
 
@@ -128,6 +129,23 @@ export function selectInterfaces(sample, selectors) {
   });
 }
 
+export function parseInterfaceTable(table) {
+  return Object.entries(table || {}).map(([index, row]) => {
+    const inOctets = optionalCounter64(row?.[6]);
+    const outOctets = optionalCounter64(row?.[10]);
+    const hasCounter64 = inOctets !== null && outOctets !== null;
+    return {
+      index: Number(index),
+      name: text(row?.[1]),
+      inOctets: hasCounter64 ? inOctets : null,
+      outOctets: hasCounter64 ? outOctets : null,
+      counterBits: hasCounter64 ? 64 : null,
+      speedMbps: Number(row?.[15] ?? 0),
+      alias: text(row?.[18]),
+    };
+  });
+}
+
 export function calculateThroughput(previous, current, indexes) {
   const elapsedSeconds = (current.sampledAt.valueOf() - previous.sampledAt.valueOf()) / 1000;
   if (!(elapsedSeconds > 0)) throw new Error("SNMP samples have no elapsed time");
@@ -140,8 +158,22 @@ export function calculateThroughput(previous, current, indexes) {
     const after = current.interfaces.find((entry) => entry.index === index);
     if (!before || !after) throw new Error(`SNMP interface ${index} disappeared between samples`);
 
-    const inboundDelta = counterDelta(before.inOctets, after.inOctets);
-    const outboundDelta = counterDelta(before.outOctets, after.outOctets);
+    const inboundDelta = counterDelta(
+      before.inOctets,
+      after.inOctets,
+      before.counterBits || 64,
+      after.counterBits || 64,
+      Math.max(Number(before.speedMbps) || 0, Number(after.speedMbps) || 0),
+      elapsedSeconds,
+    );
+    const outboundDelta = counterDelta(
+      before.outOctets,
+      after.outOctets,
+      before.counterBits || 64,
+      after.counterBits || 64,
+      Math.max(Number(before.speedMbps) || 0, Number(after.speedMbps) || 0),
+      elapsedSeconds,
+    );
     inboundBytes += inboundDelta;
     outboundBytes += outboundDelta;
     interfaces.push({
@@ -181,11 +213,31 @@ export function counter64(value) {
   return result;
 }
 
-function counterDelta(before, after) {
+function optionalCounter64(value) {
+  try {
+    return counter64(value);
+  } catch {
+    return null;
+  }
+}
+
+function counterDelta(before, after, beforeBits, afterBits, speedMbps, elapsedSeconds) {
+  if (beforeBits !== afterBits) {
+    const error = new Error("SNMP counter width changed; rebuilding baseline");
+    error.code = "SNMP_COUNTER_RESET";
+    throw error;
+  }
   const start = counter64(before);
   const end = counter64(after);
   if (end < start) {
-    const error = new Error("SNMP Counter64 decreased; interface likely restarted");
+    if (afterBits === 32) {
+      const wrapped = (1n << 32n) - start + end;
+      const maximumBytes = speedMbps > 0
+        ? speedMbps * 1_000_000 / 8 * elapsedSeconds * 1.25
+        : Infinity;
+      if (Number(wrapped) <= maximumBytes) return wrapped;
+    }
+    const error = new Error(`SNMP Counter${afterBits} decreased; interface likely restarted`);
     error.code = "SNMP_COUNTER_RESET";
     throw error;
   }
@@ -200,8 +252,13 @@ function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-class NetSnmpClient {
-  constructor(config) {
+export class NetSnmpClient {
+  constructor(config, session) {
+    this.interfaceSelectors = config.interfaces || [];
+    if (session) {
+      this.session = session;
+      return;
+    }
     const authProtocol = protocol(snmp.AuthProtocols, config.authProtocol, "authentication");
     const privProtocol = protocol(snmp.PrivProtocols, config.privProtocol, "privacy");
     this.session = snmp.createV3Session(config.host, {
@@ -219,20 +276,53 @@ class NetSnmpClient {
     });
   }
 
-  readInterfaces() {
-    return new Promise((resolve, reject) => {
+  async readInterfaces() {
+    const table = await new Promise((resolve, reject) => {
       this.session.tableColumns(IF_X_TABLE, IF_X_COLUMNS, 20, (error, table) => {
         if (error) return reject(error);
+        resolve(table);
+      });
+    });
+    let interfaces = parseInterfaceTable(table);
+    const selected = selectInterfaces({ interfaces }, this.interfaceSelectors);
+    const counter32Fallback = selected.filter((entry) => entry.counterBits === null);
+    if (counter32Fallback.length) {
+      const counters = await this.readCounter32(counter32Fallback);
+      interfaces = interfaces.map((entry) => {
+        const fallback = counters.get(entry.index);
+        return fallback ? { ...entry, ...fallback } : entry;
+      });
+    }
+    return { sampledAt: new Date(), interfaces };
+  }
+
+  readCounter32(interfaces) {
+    const oids = interfaces.flatMap((entry) => [
+      `${IF_TABLE_ENTRY}.10.${entry.index}`,
+      `${IF_TABLE_ENTRY}.16.${entry.index}`,
+    ]);
+    return new Promise((resolve, reject) => {
+      this.session.get(oids, (error, varbinds) => {
+        if (error) return reject(error);
         try {
-          const interfaces = Object.entries(table).map(([index, row]) => ({
-            index: Number(index),
-            name: text(row[1]),
-            inOctets: counter64(row[6]),
-            outOctets: counter64(row[10]),
-            speedMbps: Number(row[15] ?? 0),
-            alias: text(row[18]),
-          }));
-          resolve({ sampledAt: new Date(), interfaces });
+          const counters = new Map();
+          interfaces.forEach((entry, position) => {
+            const inbound = varbinds[position * 2];
+            const outbound = varbinds[position * 2 + 1];
+            for (const varbind of [inbound, outbound]) {
+              if (!varbind || snmp.isVarbindError(varbind)) {
+                throw new Error(
+                  `SNMP Counter32 unavailable for interface ${entry.name || entry.index}`,
+                );
+              }
+            }
+            counters.set(entry.index, {
+              inOctets: counter32(inbound.value),
+              outOctets: counter32(outbound.value),
+              counterBits: 32,
+            });
+          });
+          resolve(counters);
         } catch (parseError) {
           reject(parseError);
         }
@@ -261,6 +351,14 @@ class NetSnmpClient {
   close() {
     this.session.close();
   }
+}
+
+function counter32(value) {
+  const result = counter64(value);
+  if (result < 0n || result > 0xffff_ffffn) {
+    throw new TypeError("SNMP Counter32 must be an unsigned 32-bit integer");
+  }
+  return result;
 }
 
 function text(value) {

@@ -20,7 +20,7 @@ NAS 不在本地构建应用源码。
 - 可选：Docker 主机可通过 IPv4/UDP 161 访问经过验证的 SNMPv3 路由器
 - 首次安装 Android 时可使用一台装有 `adb` 的电脑
 
-当前正式服务端镜像是 `ghcr.io/gaofeng21cn/opl-fleet-cockpit:0.1.42`，同时支持
+当前正式服务端镜像是 `ghcr.io/gaofeng21cn/opl-fleet-cockpit:0.1.43`，同时支持
 `linux/amd64` 与 `linux/arm64`。该镜像公开可拉取；正常安装不要创建或配置
 GitHub Token。
 

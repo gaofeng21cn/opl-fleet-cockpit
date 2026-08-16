@@ -23,7 +23,7 @@ compatibility aliases during in-place migration.
 - Optional for initial Android installation: a computer with `adb`
 
 The current published server image is
-`ghcr.io/gaofeng21cn/opl-fleet-cockpit:0.1.42` for both `linux/amd64` and
+`ghcr.io/gaofeng21cn/opl-fleet-cockpit:0.1.43` for both `linux/amd64` and
 `linux/arm64`. The package is public. Do not create or configure a GitHub token
 for a normal pull.
 

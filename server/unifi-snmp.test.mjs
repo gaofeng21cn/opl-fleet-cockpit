@@ -5,6 +5,8 @@ import {
   countDynamicClients,
   counter64,
   createUnifiSnmpPoller,
+  NetSnmpClient,
+  parseInterfaceTable,
   selectInterfaces,
 } from "./unifi-snmp.mjs";
 
@@ -21,6 +23,68 @@ test("selects WAN interfaces by index, name, or alias", () => {
     { index: 9, name: "br0", alias: "LAN" },
   ]);
   assert.deepEqual(selectInterfaces(current, ["8", "WAN2"]).map((entry) => entry.index), [7, 8]);
+});
+
+test("keeps incomplete Counter64 rows available for selected-interface fallback", () => {
+  const interfaces = parseInterfaceTable({
+    3: { 1: Buffer.from("eth9"), 15: 1000 },
+    23: {
+      1: Buffer.from("eth7"),
+      6: Buffer.from("0000000000000001", "hex"),
+      10: Buffer.from("0000000000000002", "hex"),
+      15: 1000,
+    },
+  });
+  assert.deepEqual(interfaces, [
+    {
+      index: 3,
+      name: "eth9",
+      inOctets: null,
+      outOctets: null,
+      counterBits: null,
+      speedMbps: 1000,
+      alias: "",
+    },
+    {
+      index: 23,
+      name: "eth7",
+      inOctets: 1n,
+      outOctets: 2n,
+      counterBits: 64,
+      speedMbps: 1000,
+      alias: "",
+    },
+  ]);
+});
+
+test("reads exact Counter32 values when selected Counter64 columns are absent", async () => {
+  const session = {
+    tableColumns: (_table, _columns, _repetitions, callback) => callback(null, {
+      3: { 1: Buffer.from("eth9"), 15: 1000 },
+      99: { 1: Buffer.from("veth99"), 15: 1000 },
+    }),
+    get: (oids, callback) => {
+      assert.deepEqual(oids, [
+        "1.3.6.1.2.1.2.2.1.10.3",
+        "1.3.6.1.2.1.2.2.1.16.3",
+      ]);
+      callback(null, [
+        { type: 65, value: 1234 },
+        { type: 65, value: 5678 },
+      ]);
+    },
+  };
+  const client = new NetSnmpClient({ interfaces: ["eth9"] }, session);
+  const result = await client.readInterfaces();
+  assert.deepEqual(result.interfaces.map(({ index, inOctets, outOctets, counterBits }) => ({
+    index,
+    inOctets,
+    outOctets,
+    counterBits,
+  })), [
+    { index: 3, inOctets: 1234n, outOctets: 5678n, counterBits: 32 },
+    { index: 99, inOctets: null, outOctets: null, counterBits: null },
+  ]);
 });
 
 test("calculates aggregate dual-WAN throughput from Counter64 deltas", () => {
@@ -251,6 +315,61 @@ test("poller rebuilds its baseline after a Counter64 reset", async () => {
   const recovered = await poll();
   assert.equal(recovered.status, "live");
   assert.ok(recovered.downloadMbps > 0);
+});
+
+test("calculates a Counter32 wrap without treating it as an interface reset", () => {
+  const previous = sample("2026-07-25T00:00:00.000Z", [
+    {
+      index: 3,
+      name: "eth9",
+      alias: "WAN",
+      inOctets: 0xffff_ff00n,
+      outOctets: 0xffff_ff80n,
+      counterBits: 32,
+    },
+  ]);
+  const current = sample("2026-07-25T00:00:01.000Z", [
+    {
+      index: 3,
+      name: "eth9",
+      alias: "WAN",
+      inOctets: 0x100n,
+      outOctets: 0x80n,
+      counterBits: 32,
+    },
+  ]);
+  const result = calculateThroughput(previous, current, [3]);
+  assert.equal(result.downloadMbps, 0.004096);
+  assert.equal(result.uploadMbps, 0.002048);
+});
+
+test("treats an implausible Counter32 decrease as an interface reset", () => {
+  const previous = sample("2026-07-25T00:00:00.000Z", [
+    {
+      index: 3,
+      name: "eth9",
+      alias: "WAN",
+      inOctets: 3_000_000_000n,
+      outOctets: 3_000_000_000n,
+      counterBits: 32,
+      speedMbps: 1000,
+    },
+  ]);
+  const current = sample("2026-07-25T00:00:01.000Z", [
+    {
+      index: 3,
+      name: "eth9",
+      alias: "WAN",
+      inOctets: 10n,
+      outOctets: 10n,
+      counterBits: 32,
+      speedMbps: 1000,
+    },
+  ]);
+  assert.throws(
+    () => calculateThroughput(previous, current, [3]),
+    (error) => error.code === "SNMP_COUNTER_RESET" && /Counter32 decreased/.test(error.message),
+  );
 });
 
 function average(values) {

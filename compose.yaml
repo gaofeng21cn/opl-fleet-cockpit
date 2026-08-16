@@ -2,7 +2,7 @@
 # file by itself, so LAN discovery must not depend on a second override file.
 services:
   gateway:
-    image: ${OPL_FLEET_COCKPIT_IMAGE:-${AMBIENT_OPS_IMAGE:-ghcr.io/gaofeng21cn/opl-fleet-cockpit:0.1.42}}
+    image: ${OPL_FLEET_COCKPIT_IMAGE:-${AMBIENT_OPS_IMAGE:-ghcr.io/gaofeng21cn/opl-fleet-cockpit:0.1.43}}
     network_mode: host
     restart: unless-stopped
     init: true
