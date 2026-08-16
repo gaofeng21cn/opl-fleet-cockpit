@@ -20,7 +20,7 @@ Migration is complete only when all of these are true:
 - An existing Synology installation keeps its original named data volume.
 - Health and API readback show live UniFi and Codex state with the expected
   machine set.
-- Codex TPS discovers and pushes to the NAS.
+- OPL Fleet Agent discovers and pushes to the NAS.
 - The HTC kiosk discovers the NAS and renders all four dynamic pages without
   USB or `adb reverse`.
 - The Mac server LaunchAgent is unloaded but remains recoverable.
@@ -169,7 +169,7 @@ curl -fsS http://127.0.0.1:8787/api/status |
 
 From the Mac:
 
-1. Confirm the Codex TPS Ambient Ops panel reports the NAS endpoint and a
+1. Confirm the OPL Fleet Agent Ambient Ops panel reports the NAS endpoint and a
    successful push.
 2. Confirm the expected stable machine ID appears once in `/api/status`.
 3. Browse `_ambient-ops._tcp.local` and verify only one service resolves to the
@@ -230,7 +230,7 @@ If a post-cutover check fails:
    launchctl kickstart -k gui/$(id -u)/cn.gaofeng.ambient-ops.server
    ```
 
-3. Require the original live health/API state, one mDNS owner, Codex TPS push,
+3. Require the original live health/API state, one mDNS owner, OPL Fleet Agent push,
    and automatic HTC recovery.
 
 The Mac data, Keychain entries, plist, prior runtime releases, and legacy

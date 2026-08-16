@@ -45,8 +45,8 @@ moving image tag.
 Never ask me to paste a token or password into chat, never print/read secret
 file contents, and never put credentials in .env, Compose, commands, logs, or
 the repository. Pause only for me to run the documented interactive
-set-secret command. On Windows Codex TPS v0.2.9+, use the automatic device
-pairing page. On macOS Codex TPS v0.2.11+, use the same automatic pairing
+set-secret command. On Windows OPL Fleet Agent v0.2.9+, use the automatic device
+pairing page. On macOS OPL Fleet Agent v0.2.11+, use the same automatic pairing
 flow. Only headless and legacy bearer agents require the existing token to be
 entered locally.
 
@@ -143,7 +143,7 @@ restart ownership is Docker Compose `restart: unless-stopped`.
 
 ### 5. Connect agents and kiosk
 
-Windows Codex TPS v0.2.9+ and macOS Codex TPS v0.2.11+ discover Ambient Ops,
+Windows OPL Fleet Agent v0.2.9+ and macOS OPL Fleet Agent v0.2.11+ discover Ambient Ops,
 open a one-time approval page, and store a per-device private key with Windows
 DPAPI or the macOS Keychain. The user compares the six-digit code and approves
 the device; no shared token is copied. Only headless and legacy bearer agents

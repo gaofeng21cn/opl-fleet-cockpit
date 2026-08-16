@@ -1,8 +1,8 @@
 const SENSOR_DEFINITIONS = [
   ["network_download_mbps", "Network download", "Mbit/s", (status) => status.network.downloadMbps],
   ["network_upload_mbps", "Network upload", "Mbit/s", (status) => status.network.uploadMbps],
-  ["codex_tps_1m", "Codex TPS 1 minute", "TPS", (status) => status.codex.oneMinuteTps],
-  ["codex_tps_5m", "Codex TPS 5 minutes", "TPS", (status) => status.codex.fiveMinuteTps],
+  ["opl_fleet_agent_1m", "OPL Fleet Agent 1 minute", "TPS", (status) => status.codex.oneMinuteTps],
+  ["opl_fleet_agent_5m", "OPL Fleet Agent 5 minutes", "TPS", (status) => status.codex.fiveMinuteTps],
   ["active_sessions", "Active Codex sessions", null, (status) => status.codex.activeSessions],
   ["machine_count", "Reporting machines", null, (status) => status.codex.machineCount],
 ];

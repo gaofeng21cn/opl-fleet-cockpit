@@ -83,12 +83,12 @@ aggregate Codex activity from multiple computers with optional live WAN counters
 from a compatible router, then presents the normalized state through browser and
 dedicated Android displays.
 
-The container is the OPL Fleet Cockpit Gateway and Codex TPS is presented as
-OPL Fleet Agent · Codex TPS. These are telemetry-only roles: registry, policy,
+The container is the OPL Fleet Cockpit Gateway, while the desktop client is
+OPL Fleet Agent. These are telemetry-only roles: registry, policy,
 admission, leases, and dispatch remain with OPL Flow, the private Instance, and
 OPL Fleet Controller. New installations use the `opl-fleet-cockpit` project and
-image identities; `ambient-ops` and `codex-tps` remain bounded compatibility aliases
-for existing agents and in-place upgrades.
+image identities. The Gateway retains its bounded `ambient-ops` implementation
+alias for in-place upgrades; the Agent uses only its canonical `opl-fleet-agent` identity.
 
 It is intentionally narrower than a general observability platform. It helps when
 you want to:
@@ -98,9 +98,9 @@ you want to:
 - give browsers and a dedicated display one canonical status source; and
 - keep the deployment self-hosted without sending conversation content to a third party.
 
-### How Codex TPS fits
+### How OPL Fleet Agent fits
 
-[OPL Fleet Agent · Codex TPS](https://github.com/gaofeng21cn/opl-fleet-agent) runs on each macOS or Windows
+[OPL Fleet Agent](https://github.com/gaofeng21cn/opl-fleet-agent) runs on each macOS or Windows
 computer and reads usage events already written by the local Codex client. It sends
 only machine identity, platform, collection time, aggregate `1m` and `5m` token
 counters, active-session count, and optional pet state.
@@ -108,7 +108,7 @@ counters, active-session count, and optional pet state.
 Session identifiers, local paths, prompts, responses, tool content, and repository
 files are never transmitted.
 
-Current desktop clients use one-time device approval. Codex TPS creates a local
+Current desktop clients use one-time device approval. OPL Fleet Agent creates a local
 per-device key, the user verifies a six-digit pairing code, and subsequent snapshots
 are signed. Shared bearer tokens remain only for legacy and headless agents.
 
@@ -130,7 +130,7 @@ SNMPv3 router -------------- standard IF-MIB counters ------------+--> OPL Fleet
 
 The server, API, SNMP collector, LAN discovery publisher, and frontend ship in one
 container. The Android kiosk can display this canonical Fleet source, or use its
-bundled frontend to connect directly to one LAN Codex TPS instance. Direct mode
+bundled frontend to connect directly to one LAN OPL Fleet Agent instance. Direct mode
 needs no Gateway and still receives only aggregate machine status.
 
 ### What you get

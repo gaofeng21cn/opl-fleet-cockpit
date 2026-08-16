@@ -6,7 +6,7 @@ not conversation content, and separates collector credentials from display clien
 
 ## Trust boundary
 
-- OPL Fleet Agent · Codex TPS reads local Codex token records on each host and sends only the
+- OPL Fleet Agent reads local Codex token records on each host and sends only the
   allowlisted aggregate snapshot documented in
   [`agent-push-api.md`](agent-push-api.md).
 - The server reads UniFi through SNMPv3 `authPriv` or an optional read-only
@@ -24,7 +24,7 @@ in this versioned envelope are rejected before persistence.
 
 The display, status, and one-time device approval pages intentionally have no
 browser login. Bind them only to the trusted LAN or a private VPN. Approve a
-device only when its six-digit code matches Codex TPS. Add an authenticated TLS
+device only when its six-digit code matches OPL Fleet Agent. Add an authenticated TLS
 reverse proxy before exposing them outside that boundary.
 
 ## Secret handling
@@ -54,7 +54,7 @@ The macOS runtime stores credentials in Keychain and puts only Keychain service
 names in its LaunchAgent plist. Do not replace this with raw plist environment
 values.
 
-Codex TPS `v0.2.11+` on macOS and `v0.2.9+` on Windows generate a P-256 device
+OPL Fleet Agent `v0.2.11+` on macOS and `v0.2.9+` on Windows generate a P-256 device
 key locally. The Mac stores its private key in the login Keychain; Windows
 stores the private PKCS#8 bytes only as current-user DPAPI ciphertext. Ambient
 Ops stores the corresponding public key in `/data/device-pairings.json`; that

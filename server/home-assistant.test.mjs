@@ -10,6 +10,6 @@ test("maps aggregate status to stable Home Assistant entities", () => {
     network: { status: "live", downloadMbps: 100, uploadMbps: 20 },
     codex: { status: "live", oneMinuteTps: 50, fiveMinuteTps: 45, activeSessions: 2, machineCount: 1 },
   }, "Home Ops");
-  assert.equal(states.find((state) => state.entityId === "sensor.home_ops_codex_tps_1m").state, 50);
+  assert.equal(states.find((state) => state.entityId === "sensor.home_ops_opl_fleet_agent_1m").state, 50);
   assert.equal(states.find((state) => state.entityId === "sensor.home_ops_status").state, "live");
 });

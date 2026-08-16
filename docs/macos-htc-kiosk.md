@@ -19,9 +19,9 @@ The installer preserves the previous release for rollback, switches
 `/healthz` readback. Credentials remain in Keychain and normalized data remains
 in the existing data directory.
 
-Codex TPS now discovers Ambient Ops and pushes aggregate metrics from the
-menu-bar application. The legacy `cn.gaofeng.ambient-ops.codex-tps-agent`
-LaunchAgent is kept as a recovery artifact but must remain disabled to avoid
+OPL Fleet Agent now discovers Ambient Ops and pushes aggregate metrics from the
+menu-bar application. The recovery-only `cn.gaofeng.opl-fleet-agent-headless`
+LaunchAgent must remain disabled during normal operation to avoid
 counting the same Mac twice.
 
 Agent entries remain visible during the configured stale grace period. After

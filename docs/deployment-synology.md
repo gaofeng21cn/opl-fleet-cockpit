@@ -75,7 +75,7 @@ pulls.
 
 For a fresh installation, generate a new **agent push token** as above. For a
 migration, copy the existing agent push token instead; changing it makes every
-Codex TPS agent fail with HTTP 401 until its Keychain item is updated.
+OPL Fleet Agent fail with HTTP 401 until its Keychain item is updated.
 
 Set at least:
 
@@ -203,7 +203,7 @@ This identity migration does not require or authorize a NAS reboot. The status
 receipt continues to report reboot recovery as unverified until a separately
 authorized real reboot occurs; that evidence is not a gate for this migration.
 
-Codex TPS needs the exact `secrets/agent_push_token` value in each host's
+OPL Fleet Agent needs the exact `secrets/agent_push_token` value in each host's
 credential store: Keychain service `cn.gaofeng.ambient-ops.agent-push` on macOS
 or DPAPI-backed settings on Windows. Enable aggregate sending and auto-discovery
 in the app. The Android kiosk must load through Wi-Fi discovery with

@@ -15,7 +15,7 @@ HEALTH_URL="${AMBIENT_OPS_HEALTH_URL:-http://127.0.0.1:8791/healthz}"
 EXECUTABLE_PATH="${AMBIENT_OPS_EXECUTABLE_PATH:-/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin}"
 NODE_PATH="${AMBIENT_OPS_NODE_PATH:-$(command -v node 2>/dev/null || true)}"
 ADB_PATH="${ADB_PATH:-$(command -v adb 2>/dev/null || true)}"
-CODEX_TPS_AGENT_PATH="${CODEX_TPS_AGENT_PATH:-$(command -v codex-tps-agent 2>/dev/null || true)}"
+OPL_FLEET_AGENT_HEADLESS_PATH="${OPL_FLEET_AGENT_HEADLESS_PATH:-$(command -v opl-fleet-agent-headless 2>/dev/null || true)}"
 KEYCHAIN_ACCOUNT="${KEYCHAIN_ACCOUNT:-${USER:-$(id -un)}}"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 SITE_NAME="${SITE_NAME:-Ambient Ops}"
@@ -39,10 +39,10 @@ NETWORK_LATENCY_PORT="${NETWORK_LATENCY_PORT:-443}"
 NETWORK_LATENCY_TIMEOUT_MS="${NETWORK_LATENCY_TIMEOUT_MS:-1500}"
 NETWORK_AUXILIARY_POLL_MS="${NETWORK_AUXILIARY_POLL_MS:-5000}"
 AGENT_PUSH_TOKEN_KEYCHAIN_SERVICE="${AGENT_PUSH_TOKEN_KEYCHAIN_SERVICE:-cn.gaofeng.ambient-ops.agent-push}"
-CODEX_TPS_AMBIENT_URL="${CODEX_TPS_AMBIENT_URL:-http://127.0.0.1:8791}"
-CODEX_TPS_MACHINE_ID="${CODEX_TPS_MACHINE_ID:-$(hostname -s | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')}"
-CODEX_TPS_MACHINE_ID="${CODEX_TPS_MACHINE_ID%-}"
-CODEX_TPS_MACHINE_NAME="${CODEX_TPS_MACHINE_NAME:-$(scutil --get ComputerName 2>/dev/null || hostname -s)}"
+OPL_FLEET_AGENT_AMBIENT_URL="${OPL_FLEET_AGENT_AMBIENT_URL:-http://127.0.0.1:8791}"
+OPL_FLEET_AGENT_MACHINE_ID="${OPL_FLEET_AGENT_MACHINE_ID:-$(hostname -s | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')}"
+OPL_FLEET_AGENT_MACHINE_ID="${OPL_FLEET_AGENT_MACHINE_ID%-}"
+OPL_FLEET_AGENT_MACHINE_NAME="${OPL_FLEET_AGENT_MACHINE_NAME:-$(scutil --get ComputerName 2>/dev/null || hostname -s)}"
 ANDROID_SERIAL="${ANDROID_SERIAL:-}"
 
 render_plist() {
@@ -107,18 +107,18 @@ render_launch_agents() {
     "StandardErrorPath" "$LOG_DIR/server.err.log"
 
   render_plist \
-    "$MACOS_OPS_DIR/cn.gaofeng.ambient-ops.codex-tps-agent.plist" \
-    "$target_dir/cn.gaofeng.ambient-ops.codex-tps-agent.plist" \
-    "ProgramArguments.0" "${CODEX_TPS_AGENT_PATH:-/usr/bin/false}" \
+    "$MACOS_OPS_DIR/cn.gaofeng.opl-fleet-agent-headless.plist" \
+    "$target_dir/cn.gaofeng.opl-fleet-agent-headless.plist" \
+    "ProgramArguments.0" "${OPL_FLEET_AGENT_HEADLESS_PATH:-/usr/bin/false}" \
     "EnvironmentVariables.PATH" "$EXECUTABLE_PATH" \
     "EnvironmentVariables.CODEX_HOME" "$CODEX_HOME" \
-    "EnvironmentVariables.CODEX_TPS_AMBIENT_URL" "$CODEX_TPS_AMBIENT_URL" \
-    "EnvironmentVariables.CODEX_TPS_AMBIENT_TOKEN_KEYCHAIN_SERVICE" "$AGENT_PUSH_TOKEN_KEYCHAIN_SERVICE" \
-    "EnvironmentVariables.CODEX_TPS_KEYCHAIN_ACCOUNT" "$KEYCHAIN_ACCOUNT" \
-    "EnvironmentVariables.CODEX_TPS_MACHINE_ID" "$CODEX_TPS_MACHINE_ID" \
-    "EnvironmentVariables.CODEX_TPS_MACHINE_NAME" "$CODEX_TPS_MACHINE_NAME" \
-    "StandardOutPath" "$LOG_DIR/codex-tps-agent.out.log" \
-    "StandardErrorPath" "$LOG_DIR/codex-tps-agent.err.log"
+    "EnvironmentVariables.OPL_FLEET_AGENT_AMBIENT_URL" "$OPL_FLEET_AGENT_AMBIENT_URL" \
+    "EnvironmentVariables.OPL_FLEET_AGENT_AMBIENT_TOKEN_KEYCHAIN_SERVICE" "$AGENT_PUSH_TOKEN_KEYCHAIN_SERVICE" \
+    "EnvironmentVariables.OPL_FLEET_AGENT_KEYCHAIN_ACCOUNT" "$KEYCHAIN_ACCOUNT" \
+    "EnvironmentVariables.OPL_FLEET_AGENT_MACHINE_ID" "$OPL_FLEET_AGENT_MACHINE_ID" \
+    "EnvironmentVariables.OPL_FLEET_AGENT_MACHINE_NAME" "$OPL_FLEET_AGENT_MACHINE_NAME" \
+    "StandardOutPath" "$LOG_DIR/opl-fleet-agent-headless.out.log" \
+    "StandardErrorPath" "$LOG_DIR/opl-fleet-agent-headless.err.log"
 
   render_plist \
     "$MACOS_OPS_DIR/cn.gaofeng.ambient-ops.adb-kiosk.plist" \

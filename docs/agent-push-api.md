@@ -1,6 +1,6 @@
 # OPL Fleet Agent Push API
 
-`OPL Fleet Agent · Codex TPS` pushes aggregate metrics to the compatibility
+`OPL Fleet Agent` pushes aggregate metrics to the compatibility
 `ambient-ops` endpoint owned by `OPL Fleet Telemetry Gateway`. The Gateway never
 requests local session files and retains only the allowlist below.
 
@@ -12,7 +12,7 @@ Authorization: Bearer <AGENT_PUSH_TOKEN>
 Content-Type: application/json
 ```
 
-Codex TPS `v0.2.11+` on macOS and `v0.2.9+` on Windows normally use an approved
+OPL Fleet Agent `v0.2.11+` on macOS and `v0.2.9+` on Windows normally use an approved
 P-256 device key instead:
 
 ```http
@@ -53,7 +53,7 @@ exact JSON bytes. The server rejects stale timestamps and repeated nonces.
   "activeSessions": 2,
   "oplFleet": {
     "schema": "opl_fleet_agent_telemetry.v1",
-    "product": "OPL Fleet Agent · Codex TPS",
+    "product": "OPL Fleet Agent",
     "stableNodeID": "primary-laptop",
     "agentVersion": "0.2.27",
     "modes": ["local", "direct", "fleet"],

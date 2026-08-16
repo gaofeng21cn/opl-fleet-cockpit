@@ -58,11 +58,11 @@ PLIST_LITERAL_RULES = {
         rb"<key>ANDROID_SERIAL</key>\s*<string>(?!__ANDROID_SERIAL__</string>|</string>)[^<]+</string>"
     ),
     "keychain_account": re.compile(
-        rb"<key>(?:KEYCHAIN_ACCOUNT|CODEX_TPS_KEYCHAIN_ACCOUNT)</key>\s*"
+        rb"<key>(?:KEYCHAIN_ACCOUNT|OPL_FLEET_AGENT_KEYCHAIN_ACCOUNT)</key>\s*"
         rb"<string>(?!__KEYCHAIN_ACCOUNT__</string>)[^<]+</string>"
     ),
     "machine_identity": re.compile(
-        rb"<key>CODEX_TPS_MACHINE_(?:ID|NAME)</key>\s*"
+        rb"<key>OPL_FLEET_AGENT_MACHINE_(?:ID|NAME)</key>\s*"
         rb"<string>(?!__MACHINE_(?:ID|NAME)__</string>)[^<]+</string>"
     ),
     "snmp_user": re.compile(

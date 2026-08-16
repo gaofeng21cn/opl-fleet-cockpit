@@ -81,10 +81,11 @@
 OPL Fleet Cockpit 是一个自托管的局域网状态聚合器。它把多台电脑上的 Codex 使用情况、
 兼容路由器的实时广域网计数器和设备在线状态，整理成一套适合常亮显示的界面。
 
-其中容器承担 `OPL Fleet Cockpit Gateway`，Codex TPS 作为
-`OPL Fleet Agent · Codex TPS`。两者都只拥有遥测职责；registry、policy、admission、
+其中容器承担 `OPL Fleet Cockpit Gateway`，桌面客户端为 `OPL Fleet Agent`。
+两者都只拥有遥测职责；registry、policy、admission、
 lease 与 dispatch 仍由 OPL Flow、私有 Instance 和 `OPL Fleet Controller` 负责。
-仓库、镜像、包名、发现服务和更新通道继续兼容既有 `ambient-ops` 与 `codex-tps` 身份。
+Gateway 为原地升级保留受限的 `ambient-ops` 实现别名；Agent 只使用规范的
+`opl-fleet-agent` 身份。
 
 它解决的不是“再做一个复杂监控平台”，而是下面这个更具体的问题：
 
@@ -93,15 +94,15 @@ lease 与 dispatch 仍由 OPL Flow、私有 Instance 和 `OPL Fleet Controller` 
 - 想让浏览器和专用 Android 屏幕读取同一个权威状态
 - 想保留自托管和本地优先，不把会话内容交给第三方服务
 
-### 与 Codex TPS 如何协同
+### 与 OPL Fleet Agent 如何协同
 
-[OPL Fleet Agent · Codex TPS](https://github.com/gaofeng21cn/opl-fleet-agent) 运行在每台 macOS 或 Windows
+[OPL Fleet Agent](https://github.com/gaofeng21cn/opl-fleet-agent) 运行在每台 macOS 或 Windows
 电脑上，读取本机 Codex 已经写入的用量事件。它只向 OPL Fleet Cockpit Gateway 发送机器名、平台、
 采集时间、最近 `1 分钟 / 5 分钟` 的汇总 Token 计数、活跃会话数和可选宠物状态。
 
 会话标识、本机路径、提示词、回复正文、工具调用内容和仓库文件都不会发送。
 
-当前桌面版 Codex TPS 使用一次性设备批准流程：应用在本机生成独立设备密钥，
+当前桌面版 OPL Fleet Agent 使用一次性设备批准流程：应用在本机生成独立设备密钥，
 用户核对六位配对码后开始签名上报，不需要复制共享令牌。共享令牌只保留给旧版或
 无界面的 Agent 部署。
 
@@ -126,7 +127,7 @@ SNMPv3 路由器 -------- 标准 IF-MIB 计数器 ------+--> OPL Fleet Cockpit G
 
 - 总览、网络、机器、单机负载、宠物和电子墨水屏六类显示页面
 - 原生 iOS 首页、机器、显示、Widget、实时活动、灵动岛与待机显示，并包含完整离线演示模式
-- 多台 Codex TPS 主机的聚合吞吐、活跃会话和新鲜度状态
+- 多台 OPL Fleet Agent 主机的聚合吞吐、活跃会话和新鲜度状态
 - 基于标准 IF-MIB `Counter64` 的下载、上传和可选网络延迟
 - Prometheus 文本指标和可选 Home Assistant 同步
 - 通过局域网自动发现服务器的 Android 常驻屏

@@ -23,7 +23,7 @@ final class DualModeDiscovery {
     }
 
     private static final String GATEWAY_TYPE = "_ambient-ops._tcp.";
-    private static final String DIRECT_TYPE = "_codex-tps._tcp.";
+    private static final String DIRECT_TYPE = "_opl-fleet-agent._tcp.";
     private static final String GATEWAY_PATH = "/display/overview";
     private static final String DIRECT_PATH = "/api/v1/status";
     private static final long RESOLVE_TIMEOUT_MS = 5_000L;

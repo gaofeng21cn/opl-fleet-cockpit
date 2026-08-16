@@ -64,7 +64,7 @@ const VIEWS = ["overview", "network", "machines", "load", "pet"];
 const VIEW_LABELS = { overview: "Overview", network: "Network", machines: "Machines", load: "Load", pet: "Pet" };
 const FLEET_COCKPIT_NAME = "OPL Fleet Cockpit";
 const FLEET_GATEWAY_NAME = "OPL Fleet Telemetry Gateway";
-const FLEET_AGENT_NAME = "OPL Fleet Agent · Codex TPS";
+const FLEET_AGENT_NAME = "OPL Fleet Agent";
 const CONNECTION_STALE_GRACE_MS = 5_000;
 const DISPLAY_CONNECTION = displayConnectionConfiguration();
 const PET_STATE_LABELS = {
@@ -152,13 +152,13 @@ function PairingApproval({ requestId }) {
         {state === "loading" ? (
           <>
             <h1>Checking request</h1>
-            <p>Reading the Codex TPS pairing request.</p>
+            <p>Reading the OPL Fleet Agent pairing request.</p>
           </>
         ) : null}
         {pairing && (state === "pending" || state === "submitting") ? (
           <>
-            <h1>Connect Codex TPS</h1>
-            <p>Approve this device only when the code matches Codex TPS.</p>
+            <h1>Connect OPL Fleet Agent</h1>
+            <p>Approve this device only when the code matches OPL Fleet Agent.</p>
             <dl className="pairing-device">
               <div><dt>Device</dt><dd>{pairing.machineName}</dd></div>
               <div><dt>Platform</dt><dd>{pairing.platform}</dd></div>

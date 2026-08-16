@@ -17,13 +17,13 @@ Fresh owner-side readback on 2026-07-26 confirmed:
 | `/healthz` | `mode=live`, overall/network/Codex live |
 | UniFi | SNMPv3 `authPriv`, two selected WAN interfaces, 4 Hz polling |
 | Codex | One live Mac; duplicate legacy agent disabled |
-| Pet | Ledger Owl state and asset identity received from Codex TPS |
+| Pet | Ledger Owl state and asset identity received from OPL Fleet Agent |
 | HTC 5G Hub | Native kiosk verified on physical device |
 | Discovery | Wi-Fi mDNS; no USB or `adb reverse` dependency |
 | Home Assistant | Disabled and non-critical |
 
 The HTC app is the default Home activity, owns an immersive WebView, remembers
-the preferred `INSTANCE_ID`, and resolves `_ambient-ops._tcp.local`. Codex TPS
+the preferred `INSTANCE_ID`, and resolves `_ambient-ops._tcp.local`. OPL Fleet Agent
 also discovers Ambient Ops and pushes only normalized aggregate metrics. The
 legacy standalone Codex push LaunchAgent and ADB watcher are recovery artifacts
 and must remain disabled during normal operation.
@@ -32,7 +32,7 @@ and must remain disabled during normal operation.
 
 - Live Overview, Network, Machines, Pet, and e-ink views
 - Smoothed 4 Hz UniFi SNMPv3 WAN rates from 64-bit interface counters
-- Authenticated multi-machine Codex TPS ingestion and stale retirement
+- Authenticated multi-machine OPL Fleet Agent ingestion and stale retirement
 - Host pet protocol and selected-machine Pet view
 - Native Android kiosk with boot, Home, immersive, retry, and LAN discovery
 - Atomic macOS runtime install and previous-release rollback
@@ -57,7 +57,7 @@ The terminal state is:
 2. It preserves the Mac `INSTANCE_ID`, agent token, and required secrets.
 3. `/data` survives replacement and the container returns after NAS reboot.
 4. `/healthz` reports live network and Codex sources with the expected machines.
-5. The HTC and Codex TPS apps discover and use the NAS without manual URLs,
+5. The HTC and OPL Fleet Agent apps discover and use the NAS without manual URLs,
    USB, or `adb reverse`.
 6. The Mac LaunchAgent is unloaded but retained as a tested rollback.
 

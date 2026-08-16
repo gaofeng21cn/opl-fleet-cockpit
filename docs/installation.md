@@ -18,7 +18,7 @@ compatibility aliases during in-place migration.
 - A Linux host or Synology NAS with Docker Engine and Docker Compose v2
 - `git`, `curl`, and `openssl` on the Docker host
 - TCP/8787 reachable only from the trusted LAN or private VPN
-- UDP/5353 multicast between the server, Codex TPS computers, and Android kiosk
+- UDP/5353 multicast between the server, OPL Fleet Agent computers, and Android kiosk
 - Optional: IPv4/UDP 161 from the Docker host to a qualified SNMPv3 router
 - Optional for initial Android installation: a computer with `adb`
 
@@ -178,9 +178,9 @@ curl -fsS http://<server-ip>:8787/api/status
 `codex`, and `machines` fields separately. In `codex-only` mode, network
 readiness is intentionally not an acceptance condition.
 
-## 5. Connect every Codex TPS computer
+## 5. Connect every OPL Fleet Agent computer
 
-Install Codex TPS `v0.2.11` or later on macOS, or `v0.2.9` or later on Windows, from its
+Install OPL Fleet Agent `v0.2.11` or later on macOS, or `v0.2.9` or later on Windows, from its
 [Releases page](https://github.com/gaofeng21cn/opl-fleet-agent/releases). Each
 computer keeps its own raw Codex sessions and sends only aggregate snapshots.
 
@@ -245,7 +245,7 @@ Require all applicable checks:
 
 - Compose resolves to a versioned GHCR image and contains no `build:`.
 - `/healthz` reports `mode=live`.
-- Every expected Codex TPS host appears once and is live.
+- Every expected OPL Fleet Agent host appears once and is live.
 - With `snmpv3`, `network=live` and WAN rates change under known traffic.
 - The Android kiosk loads every page over Wi-Fi with `adb reverse --list` empty.
 - The kiosk returns as Android Home after a cold reboot without USB.

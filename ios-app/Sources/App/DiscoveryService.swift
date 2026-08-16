@@ -2,12 +2,12 @@
 
 enum DiscoveredServerKind: String, Hashable, Sendable {
     case gateway
-    case codexTPS
+    case fleetAgent
 
     var providerLabel: String {
         switch self {
         case .gateway: "FLEET"
-        case .codexTPS: "DIRECT"
+        case .fleetAgent: "DIRECT"
         }
     }
 }
@@ -36,7 +36,7 @@ enum SourceSelectionPolicy {
             .first {
             return gateway
         }
-        let direct = servers.filter { $0.kind == .codexTPS }
+        let direct = servers.filter { $0.kind == .fleetAgent }
         return direct.count == 1 ? direct.first : nil
     }
 }
@@ -69,7 +69,7 @@ final class DiscoveryService: NSObject,
         onChange?([])
         // The deployed Gateway still advertises this compatibility service type.
         gatewayBrowser.searchForServices(ofType: "_ambient-ops._tcp.", inDomain: "local.")
-        directBrowser.searchForServices(ofType: "_codex-tps._tcp.", inDomain: "local.")
+        directBrowser.searchForServices(ofType: "_opl-fleet-agent._tcp.", inDomain: "local.")
     }
 
     func stop() {
@@ -87,7 +87,7 @@ final class DiscoveryService: NSObject,
         didFind service: NetService,
         moreComing: Bool
     ) {
-        let kind: DiscoveredServerKind = browser === directBrowser ? .codexTPS : .gateway
+        let kind: DiscoveredServerKind = browser === directBrowser ? .fleetAgent : .gateway
         service.delegate = self
         resolving.append(service)
         serviceKinds[ObjectIdentifier(service)] = kind
