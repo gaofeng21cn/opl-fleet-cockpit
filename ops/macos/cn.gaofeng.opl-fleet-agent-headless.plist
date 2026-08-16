@@ -4,10 +4,10 @@
 <dict>
   <!-- Legacy recovery template rendered by install-runtime.sh. Keep unloaded normally. -->
   <key>Label</key>
-  <string>cn.gaofeng.ambient-ops.codex-tps-agent</string>
+  <string>cn.gaofeng.opl-fleet-agent-headless</string>
   <key>ProgramArguments</key>
   <array>
-    <string>__CODEX_TPS_AGENT_PATH__</string>
+    <string>__OPL_FLEET_AGENT_HEADLESS_PATH__</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
@@ -15,19 +15,19 @@
     <string>__EXECUTABLE_PATH__</string>
     <key>CODEX_HOME</key>
     <string>__CODEX_HOME__</string>
-    <key>CODEX_TPS_AMBIENT_URL</key>
+    <key>OPL_FLEET_AGENT_AMBIENT_URL</key>
     <string>http://127.0.0.1:8791</string>
-    <key>CODEX_TPS_AMBIENT_TOKEN_KEYCHAIN_SERVICE</key>
+    <key>OPL_FLEET_AGENT_AMBIENT_TOKEN_KEYCHAIN_SERVICE</key>
     <string>cn.gaofeng.ambient-ops.agent-push</string>
-    <key>CODEX_TPS_KEYCHAIN_ACCOUNT</key>
+    <key>OPL_FLEET_AGENT_KEYCHAIN_ACCOUNT</key>
     <string>__KEYCHAIN_ACCOUNT__</string>
-    <key>CODEX_TPS_MACHINE_ID</key>
+    <key>OPL_FLEET_AGENT_MACHINE_ID</key>
     <string>__MACHINE_ID__</string>
-    <key>CODEX_TPS_MACHINE_NAME</key>
+    <key>OPL_FLEET_AGENT_MACHINE_NAME</key>
     <string>__MACHINE_NAME__</string>
-    <key>CODEX_TPS_PLATFORM</key>
+    <key>OPL_FLEET_AGENT_PLATFORM</key>
     <string>macOS</string>
-    <key>CODEX_TPS_PUSH_INTERVAL</key>
+    <key>OPL_FLEET_AGENT_PUSH_INTERVAL</key>
     <string>10</string>
   </dict>
   <key>RunAtLoad</key>
@@ -39,8 +39,8 @@
   <key>ProcessType</key>
   <string>Background</string>
   <key>StandardOutPath</key>
-  <string>__LOG_DIR__/codex-tps-agent.out.log</string>
+  <string>__LOG_DIR__/opl-fleet-agent-headless.out.log</string>
   <key>StandardErrorPath</key>
-  <string>__LOG_DIR__/codex-tps-agent.err.log</string>
+  <string>__LOG_DIR__/opl-fleet-agent-headless.err.log</string>
 </dict>
 </plist>

@@ -698,20 +698,20 @@ final class OPLFleetCockpitTests: XCTestCase {
             kind: .gateway
         )
         let studio = DiscoveredServer(
-            id: "codexTPS:studio",
+            id: "fleetAgent:studio",
             instanceID: "studio",
             name: "Studio",
             url: try XCTUnwrap(URL(string: "http://studio.local:7419")),
             version: "1.0",
-            kind: .codexTPS
+            kind: .fleetAgent
         )
         let notebook = DiscoveredServer(
-            id: "codexTPS:notebook",
+            id: "fleetAgent:notebook",
             instanceID: "notebook",
             name: "Notebook",
             url: try XCTUnwrap(URL(string: "http://notebook.local:7419")),
             version: "1.0",
-            kind: .codexTPS
+            kind: .fleetAgent
         )
 
         XCTAssertEqual(
@@ -750,7 +750,7 @@ final class OPLFleetCockpitTests: XCTestCase {
             JSONSerialization.jsonObject(with: encoded) as? [String: Any]
         )
         object["provider"] = [
-            "kind": "codex-tps",
+            "kind": "opl-fleet-agent",
             "scope": "machine",
             "id": "studio",
             "name": "Studio",

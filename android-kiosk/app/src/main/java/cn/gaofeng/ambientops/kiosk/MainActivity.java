@@ -98,7 +98,7 @@ public final class MainActivity extends Activity {
         if (selected != null) {
             selectDiscoveredSource(selected);
         } else if (!pageLoaded && !endpointAttemptInProgress && discoveredSources.size() > 1) {
-            showDiscoveryState("发现多个 Codex TPS，等待已保存来源或 Gateway");
+            showDiscoveryState("发现多个 OPL Fleet Agent，等待已保存来源或 Gateway");
         }
     };
     private final Runnable updateCheck = new Runnable() {

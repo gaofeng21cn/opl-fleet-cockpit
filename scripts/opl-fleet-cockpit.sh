@@ -37,7 +37,7 @@ remain accepted during upgrades.
 This helper never prints secret values and never uses compose.local-build.yaml.
 
 Profiles:
-  codex-only            Default. Codex TPS and display surfaces only.
+  codex-only            Default. OPL Fleet Agent and display surfaces only.
   snmpv3                Adds the non-secret fields for a qualified SNMPv3 router.
   unifi-api             Adds the non-secret fields for the UniFi API fallback.
 USAGE

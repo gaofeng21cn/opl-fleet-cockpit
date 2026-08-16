@@ -16,7 +16,7 @@ NAS 不在本地构建应用源码。
 - Linux 主机或群晖 NAS，已安装 Docker Engine 与 Docker Compose v2
 - Docker 主机具备 `git`、`curl` 和 `openssl`
 - 可信局域网或私有 VPN 可以访问 TCP/8787
-- 服务端、Codex TPS 电脑和 Android Kiosk 之间可传递 UDP/5353 mDNS
+- 服务端、OPL Fleet Agent 电脑和 Android Kiosk 之间可传递 UDP/5353 mDNS
 - 可选：Docker 主机可通过 IPv4/UDP 161 访问经过验证的 SNMPv3 路由器
 - 首次安装 Android 时可使用一台装有 `adb` 的电脑
 
@@ -166,9 +166,9 @@ curl -fsS http://<server-ip>:8787/api/status
 `/healthz` 返回 HTTP 200 只证明进程存活；还要分别看 `network`、`codex` 与
 `machines`。在 `codex-only` 模式下，网络状态不是验收条件。
 
-## 5. 连接每台 Codex TPS 电脑
+## 5. 连接每台 OPL Fleet Agent 电脑
 
-从 [Codex TPS Releases](https://github.com/gaofeng21cn/opl-fleet-agent/releases)
+从 [OPL Fleet Agent Releases](https://github.com/gaofeng21cn/opl-fleet-agent/releases)
 在 macOS 安装 `v0.2.11` 或更高版本，在 Windows 安装 `v0.2.9` 或更高版本。
 各电脑的 Codex 原始 session 始终保留在本机，只向 Ambient Ops 发送汇总快照。
 
@@ -224,7 +224,7 @@ Kiosk `1.2.7` 在页面可见时每 15 秒读取当前服务器由构建内容�
 
 - Compose 解析到版本化 GHCR 镜像，且没有 `build:`。
 - `/healthz` 中 `mode=live`。
-- 每台预期 Codex TPS 主机只出现一次且状态为 live。
+- 每台预期 OPL Fleet Agent 主机只出现一次且状态为 live。
 - 使用 `snmpv3` 时 `network=live`，制造已知流量时 WAN 速率会变化。
 - Android Kiosk 通过 Wi-Fi 加载所有页面，`adb reverse --list` 为空。
 - HTC 冷启动后无需 USB 即可重新成为 Android Home。

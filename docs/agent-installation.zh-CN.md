@@ -41,8 +41,8 @@ AMBIENT_OPS_NETWORK_MODE=<profile>。
 
 不要让我把 token 或密码粘贴到对话；不要打印或读取 secret 文件内容；不要把
 凭据写进 .env、Compose、命令、日志或仓库。只有需要我在可信终端执行文档中的
-交互式 set-secret 命令时才暂停。Windows Codex TPS v0.2.9+ 使用自动设备配对页；
-macOS Codex TPS v0.2.11+ 使用同样的自动配对流程；只有 headless 和旧版 bearer
+交互式 set-secret 命令时才暂停。Windows OPL Fleet Agent v0.2.9+ 使用自动设备配对页；
+macOS OPL Fleet Agent v0.2.11+ 使用同样的自动配对流程；只有 headless 和旧版 bearer
 agent 仍需由我在本机直接输入既有 agent token。
 
 已有安装必须保留 .env、INSTANCE_ID、secrets 目录和 opl-fleet-cockpit_data 数据卷；
@@ -126,9 +126,9 @@ Agent 可以查看 `./scripts/opl-fleet-cockpit.sh logs`。遇到失败应修复
 而不是增加计划重启。日常自启动 owner 是 Docker Compose 的
 `restart: unless-stopped`。
 
-### 5. 连接 Codex TPS 与 Kiosk
+### 5. 连接 OPL Fleet Agent 与 Kiosk
 
-Windows Codex TPS v0.2.9+ 与 macOS Codex TPS v0.2.11+ 会自动发现 Ambient Ops、
+Windows OPL Fleet Agent v0.2.9+ 与 macOS OPL Fleet Agent v0.2.11+ 会自动发现 Ambient Ops、
 打开一次批准页，并分别使用 Windows DPAPI 或 macOS Keychain 保存每台设备的
 私钥。用户核对六位配对码后批准设备，不再复制共享 token。只有 headless 和旧版
 bearer agent 仍由用户在本机写入完全相同的 agent token。Agent 可以配置非敏感

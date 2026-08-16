@@ -37,7 +37,7 @@ targets:
         NSBonjourServices:
           # Current Gateway wire identity; retain until its separately deployed migration.
           - _ambient-ops._tcp
-          - _codex-tps._tcp
+          - _opl-fleet-agent._tcp
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSSupportsLiveActivities: true

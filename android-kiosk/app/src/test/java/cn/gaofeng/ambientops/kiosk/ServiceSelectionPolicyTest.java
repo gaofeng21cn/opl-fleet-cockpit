@@ -12,7 +12,7 @@ public final class ServiceSelectionPolicyTest {
     @Test
     public void savedSourceWinsEvenWhenGatewayIsAvailable() {
         DisplaySource gateway = source("gateway:home", "Home", DisplaySource.Kind.GATEWAY);
-        DisplaySource direct = source("codexTPS:studio", "Studio", DisplaySource.Kind.DIRECT);
+        DisplaySource direct = source("fleetAgent:studio", "Studio", DisplaySource.Kind.DIRECT);
         assertEquals(
             direct,
             ServiceSelectionPolicy.automaticSource(Arrays.asList(gateway, direct), direct.id)
@@ -22,7 +22,7 @@ public final class ServiceSelectionPolicyTest {
     @Test
     public void gatewayWinsWithoutSavedSource() {
         DisplaySource gateway = source("gateway:home", "Home", DisplaySource.Kind.GATEWAY);
-        DisplaySource direct = source("codexTPS:studio", "Studio", DisplaySource.Kind.DIRECT);
+        DisplaySource direct = source("fleetAgent:studio", "Studio", DisplaySource.Kind.DIRECT);
         assertEquals(
             gateway,
             ServiceSelectionPolicy.automaticSource(Arrays.asList(direct, gateway), null)
@@ -41,7 +41,7 @@ public final class ServiceSelectionPolicyTest {
 
     @Test
     public void uniqueDirectIsSelectedWithoutGateway() {
-        DisplaySource direct = source("codexTPS:studio", "Studio", DisplaySource.Kind.DIRECT);
+        DisplaySource direct = source("fleetAgent:studio", "Studio", DisplaySource.Kind.DIRECT);
         assertEquals(
             direct,
             ServiceSelectionPolicy.automaticSource(Collections.singletonList(direct), null)
@@ -50,8 +50,8 @@ public final class ServiceSelectionPolicyTest {
 
     @Test
     public void multipleDirectSourcesDoNotRaceForSelection() {
-        DisplaySource studio = source("codexTPS:studio", "Studio", DisplaySource.Kind.DIRECT);
-        DisplaySource notebook = source("codexTPS:notebook", "Notebook", DisplaySource.Kind.DIRECT);
+        DisplaySource studio = source("fleetAgent:studio", "Studio", DisplaySource.Kind.DIRECT);
+        DisplaySource notebook = source("fleetAgent:notebook", "Notebook", DisplaySource.Kind.DIRECT);
         assertNull(
             ServiceSelectionPolicy.automaticSource(Arrays.asList(studio, notebook), null)
         );

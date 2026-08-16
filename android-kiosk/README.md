@@ -1,7 +1,7 @@
 # Ambient Ops Android Kiosk
 
 This small native Android application owns the HTC display surface. It discovers
-both `_ambient-ops._tcp.local` Gateways and `_codex-tps._tcp.local` Direct sources
+both `_ambient-ops._tcp.local` Gateways and `_opl-fleet-agent._tcp.local` Direct sources
 with Android NSD, remembers the last successful source, keeps the screen awake,
 restores immersive mode, retries after connection failures, and can act as the
 default Home application. The saved source wins; otherwise Gateway wins; otherwise
@@ -124,14 +124,14 @@ adb shell am start -n cn.gaofeng.ambientops.kiosk/.MainActivity \
   --es ambient_ops_instance_id home-ops
 ```
 
-For a deployment-time Direct binding, pass the Codex TPS status endpoint and
+For a deployment-time Direct binding, pass the OPL Fleet Agent status endpoint and
 source kind explicitly:
 
 ```bash
 adb shell am start -n cn.gaofeng.ambientops.kiosk/.MainActivity \
   --es ambient_ops_url http://192.168.1.20:7419/api/v1/status \
-  --es ambient_ops_instance_id codex-tps-studio \
-  --es ambient_ops_source_kind codexTPS
+  --es ambient_ops_instance_id opl-fleet-agent-studio \
+  --es ambient_ops_source_kind fleetAgent
 ```
 
 The manual URL is a rescue path. Normal operation should continue to use LAN
@@ -176,7 +176,7 @@ leaving the kiosk permanently at "searching".
 Run this acceptance after a signed install or update:
 
 1. Confirm the intended Ambient Ops server advertises
-   `_ambient-ops._tcp.local` or one `_codex-tps._tcp.local` source on the same LAN.
+   `_ambient-ops._tcp.local` or one `_opl-fleet-agent._tcp.local` source on the same LAN.
 2. Set the kiosk as Home, open it once, and confirm the live display loads.
 3. Remove any development tunnel and prove none remains:
 

@@ -5,7 +5,7 @@ import java.util.Objects;
 final class DisplaySource {
     enum Kind {
         GATEWAY("gateway"),
-        DIRECT("codexTPS");
+        DIRECT("fleetAgent");
 
         final String preferenceValue;
 

@@ -41,7 +41,7 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_ambient-ops._tcp</string>
-		<string>_codex-tps._tcp</string>
+		<string>_opl-fleet-agent._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>OPL Fleet Cockpit discovers and reads aggregate status from your self-hosted OPL Fleet Telemetry Gateway on this local network.</string>

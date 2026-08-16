@@ -64,21 +64,21 @@ test("normalizes the current OPL Fleet Agent telemetry envelope", () => {
   });
 });
 
-test("accepts the legacy Codex TPS wire identity as OPL Fleet Agent", () => {
-  const snapshot = normalizeSnapshot("legacy-mac", {
+test("rejects the retired Fleet Agent wire identity", () => {
+  const retiredProduct = ["OPL Fleet Agent", ["Codex", "TPS"].join(" ")].join(" · ");
+
+  assert.throws(() => normalizeSnapshot("retired-mac", {
     schemaVersion: 3,
     oplFleet: {
       schema: "opl_fleet_agent_telemetry.v1",
-      product: "OPL Fleet Agent · Codex TPS",
-      stableNodeID: "legacy-mac",
+      product: retiredProduct,
+      stableNodeID: "retired-mac",
       agentVersion: "0.2.29",
       modes: ["local", "direct", "fleet"],
       capabilities: ["local_codex_telemetry", "host_dashboard"],
       authority: "node_agent",
     },
-  });
-
-  assert.equal(snapshot.oplFleet.product, "OPL Fleet Agent");
+  }), /product/);
 });
 
 test("rejects invalid OPL Fleet Agent identity, authority, and unknown fields", () => {
@@ -86,7 +86,7 @@ test("rejects invalid OPL Fleet Agent identity, authority, and unknown fields", 
     schemaVersion: 3,
     oplFleet: {
       schema: "opl_fleet_agent_telemetry.v1",
-      product: "OPL Fleet Agent · Codex TPS",
+      product: "OPL Fleet Agent",
       stableNodeID: "primary-mac",
       agentVersion: "0.2.27",
       modes: ["local", "direct", "fleet"],
@@ -129,7 +129,7 @@ test("rejects invalid OPL Fleet Agent identity, authority, and unknown fields", 
 test("rejects unsupported OPL Fleet Agent versions, modes, and capabilities", () => {
   const envelope = {
     schema: "opl_fleet_agent_telemetry.v1",
-    product: "OPL Fleet Agent · Codex TPS",
+    product: "OPL Fleet Agent",
     stableNodeID: "primary-mac",
     agentVersion: "0.2.27",
     modes: ["local", "direct", "fleet"],

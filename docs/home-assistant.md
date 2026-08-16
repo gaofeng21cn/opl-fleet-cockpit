@@ -32,8 +32,8 @@ Ambient Ops writes these REST state entities:
 
 - `sensor.ambient_ops_network_download_mbps`
 - `sensor.ambient_ops_network_upload_mbps`
-- `sensor.ambient_ops_codex_tps_1m`
-- `sensor.ambient_ops_codex_tps_5m`
+- `sensor.ambient_ops_opl_fleet_agent_1m`
+- `sensor.ambient_ops_opl_fleet_agent_5m`
 - `sensor.ambient_ops_active_sessions`
 - `sensor.ambient_ops_machine_count`
 - `sensor.ambient_ops_status`
