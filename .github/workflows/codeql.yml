@@ -37,11 +37,16 @@ jobs:
         with:
           languages: ${{ matrix.language }}
 
+      - name: Build Android sources for CodeQL
+        if: matrix.language == 'java-kotlin'
+        working-directory: android-kiosk
+        run: ./gradlew --no-daemon :app:assembleReleaseUnsigned
+
       - name: Autobuild
+        if: matrix.language != 'java-kotlin'
         uses: github/codeql-action/autobuild@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
 
       - name: Analyze
         uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           category: /language:${{ matrix.language }}
-
