@@ -1,6 +1,6 @@
 # SNMPv3 Router and UniFi Setup
 
-Ambient Ops prefers SNMPv3 because it exposes standard 64-bit interface
+OPL Fleet Cockpit prefers SNMPv3 because it exposes standard 64-bit interface
 counters without requiring a controller API credential. The collector was
 first implemented for UniFi, so its environment variables retain the
 `UNIFI_SNMP_*` prefix and the API reports `source=unifi-snmp-v3`. The polling
@@ -119,7 +119,7 @@ Interface indexes may change after a router upgrade or reboot. Prefer a stable
 `ifName` or `ifAlias`, then re-run the walk after a reboot before accepting the
 configuration. The application requires exact matches and does not guess.
 
-## 3. Configure Ambient Ops
+## 3. Configure the Gateway
 
 Keep non-secret values in `.env`:
 
@@ -330,7 +330,7 @@ Keep it in a private NAS folder and mount it read-only:
 
 ```yaml
 services:
-  ambient-ops:
+  gateway:
     extra_hosts:
       - "unifi.local:<gateway-address>"
     volumes:

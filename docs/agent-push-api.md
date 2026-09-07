@@ -1,7 +1,7 @@
 # OPL Fleet Agent Push API
 
-`OPL Fleet Agent` pushes aggregate metrics to the compatibility
-`ambient-ops` endpoint owned by `OPL Fleet Telemetry Gateway`. The Gateway never
+`OPL Fleet Agent` pushes aggregate metrics to the API owned by
+`OPL Fleet Cockpit Gateway`. The Gateway never
 requests local session files and retains only the allowlist below.
 
 ## Request
@@ -12,8 +12,7 @@ Authorization: Bearer <AGENT_PUSH_TOKEN>
 Content-Type: application/json
 ```
 
-OPL Fleet Agent `v0.2.11+` on macOS and `v0.2.9+` on Windows normally use an approved
-P-256 device key instead:
+Current desktop OPL Fleet Agents normally use an approved P-256 device key:
 
 ```http
 POST /api/v1/agents/{machineId}/snapshot
@@ -78,12 +77,12 @@ exact JSON bytes. The server rejects stale timestamps and repeated nonces.
 }
 ```
 
-`oplFleet` is optional so existing agents remain compatible. When present, the
+`oplFleet` is optional in `server/status-model.mjs`. When present, the
 Gateway requires snapshot `schemaVersion` 3, exact product/schema/authority
 values, a `stableNodeID` matching the URL `machineId`, a bounded semantic agent
 version, known modes and capabilities, and no unknown envelope or top-level
-fields. Legacy snapshots without `oplFleet` keep their existing behavior and
-unknown top-level fields are ignored during the migration window. In both paths,
+fields. Snapshots without `oplFleet` discard unknown top-level fields.
+There is no time-based migration switch in the normalizer. In both paths,
 only the normalized allowlist is persisted or projected.
 
 The envelope is descriptive telemetry, not a control grant. The Agent may
@@ -94,7 +93,7 @@ Flow, the private Instance, and `OPL Fleet Controller`.
 
 `machineId` is a stable, non-secret identifier containing only letters,
 numbers, dots, underscores, and hyphens. It should not be regenerated on every
-start.
+start. The route accepts 1 to 80 characters.
 
 The endpoint returns `202 Accepted` after the normalized snapshot has been
 persisted. Payloads are limited to 64 KiB. The response contains
@@ -106,11 +105,12 @@ content hash:
   "accepted": true,
   "machineId": "primary-laptop",
   "generatedAt": "2026-07-25T12:00:00.000Z",
-  "missingPetAssets": [
-    "cdc205aa95ef04408b87cc93e0890b12dea538256912458a718187cf5a18a347"
-  ]
+  "missingPetAssets": []
 }
 ```
+
+The bundled pet in the example needs no upload. For an absent custom pet,
+`missingPetAssets` contains exactly its declared `assetHash`.
 
 `inputTokens` includes the cached-input subset and `outputTokens` includes the
 reasoning-output subset. Therefore:
@@ -171,7 +171,7 @@ Content-Type: image/webp
 <raw spritesheet.webp bytes>
 ```
 
-Paired Windows agents use the same `AmbientKey`, timestamp, nonce, and
+Paired agents use the same `AmbientKey`, timestamp, nonce, and
 signature headers as snapshot requests. The signature covers the `PUT` method,
 the full request path, and the SHA-256 of the exact WebP bytes.
 

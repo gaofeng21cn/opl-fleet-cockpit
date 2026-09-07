@@ -1,14 +1,15 @@
 # Home Assistant Bridge
 
-Home Assistant is an optional downstream consumer. Ambient Ops collection,
+Home Assistant is an optional downstream consumer. OPL Fleet Cockpit collection,
 discovery, APIs, and displays remain operational when Home Assistant is
-disabled, stopped, or upgraded. Do not put this bridge on the production
-migration critical path.
+disabled, stopped, or upgraded. Its availability is required only when accepting
+the bridge itself.
 
 ## Enable with Compose
 
-Create a Home Assistant Long-Lived Access Token named `Ambient Ops` and write it
-to the ignored file `secrets/ha_token`. Keep non-secret settings in `.env`:
+Create a Home Assistant Long-Lived Access Token and enter it with
+`./scripts/opl-fleet-cockpit.sh set-secret ha_token`.
+Keep non-secret settings in `.env`:
 
 ```dotenv
 HA_ENABLED=true

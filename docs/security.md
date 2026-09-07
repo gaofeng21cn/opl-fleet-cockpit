@@ -1,7 +1,7 @@
 # OPL Fleet Cockpit Security and Privacy
 
-OPL Fleet Cockpit · Ambient Ops is designed for a trusted LAN. Its compatibility
-container acts as OPL Fleet Telemetry Gateway: it collects operational aggregates,
+OPL Fleet Cockpit is designed for a trusted LAN. Its Gateway
+collects operational aggregates,
 not conversation content, and separates collector credentials from display clients.
 
 ## Trust boundary
@@ -40,8 +40,9 @@ unifi_api_key
 ha_token
 ```
 
-Only the first three are required for the preferred live configuration. The
-last two are optional fallbacks/integrations. Protect the local `secrets`
+The helper requires the agent token file; SNMPv3 additionally requires its two
+passwords. UniFi API and Home Assistant credentials are needed only when those
+sources are configured. Protect the local `secrets`
 directory with owner-only permissions and never commit `.env`, secret files,
 certificates, logs, screenshots, or data exports.
 
@@ -54,7 +55,7 @@ The macOS runtime stores credentials in Keychain and puts only Keychain service
 names in its LaunchAgent plist. Do not replace this with raw plist environment
 values.
 
-OPL Fleet Agent `v0.2.11+` on macOS and `v0.2.9+` on Windows generate a P-256 device
+Current desktop OPL Fleet Agents generate a P-256 device
 key locally. The Mac stores its private key in the login Keychain; Windows
 stores the private PKCS#8 bytes only as current-user DPAPI ciphertext. Ambient
 Ops stores the corresponding public key in `/data/device-pairings.json`; that
@@ -76,6 +77,10 @@ Use an HTTPS reverse proxy or private VPN if traffic crosses an untrusted
 network.
 
 ## Persistent data
+
+Device approvals live in `/data/device-pairings.json`; uploaded pet artwork
+lives in `/data/pets/`. Preserve both when moving the data directory. Credentials
+remain outside that state directory in the protected stores described above.
 
 `/data/state.json` contains:
 

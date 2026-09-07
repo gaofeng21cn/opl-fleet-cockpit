@@ -44,19 +44,17 @@ Turning Demo Mode off follows the same path: it clears demo metrics immediately,
 reuses a saved server address when available, or offers local-network discovery
 when no server has been configured.
 
-Discovery uses `_ambient-ops._tcp`. The app requests only the public aggregate
-status endpoint. Gateway, OPL Fleet Agent, and router credentials remain outside the app.
+Discovery uses `_ambient-ops._tcp` for Gateway mode and `_opl-fleet-agent._tcp`
+for Direct mode. A remembered source wins, then a Gateway, then one unique
+Direct source; multiple Direct sources require selection. Both expose
+`/api/v1/status` schema 1. Gateway, Agent and router credentials remain outside the app.
 
 ## Live Activity boundary
 
 The user explicitly starts and ends a Live Activity from Settings. While the app
 can refresh, it updates the current activity locally. Background near-real-time
-updates require an optional APNs relay, which is not part of the first self-hosted
-client release and is advertised by the server as `liveActivityPush: false`.
-
-The relay must never place an APNs `.p8` signing key in the app or on a public NAS
-endpoint. A future relay should send only instance, focused-host, load-state,
-aggregate TPS/session/CPU values, and timestamps, with state-change throttling.
+updates would require an APNs relay. No relay is implemented; the server
+advertises `liveActivityPush: false`.
 
 ## Build
 
@@ -77,5 +75,7 @@ The app and widget use:
 - Team: `SVVC4TA784`
 - Minimum iOS version: iOS 18
 
-Automatic signing must create or resolve the App ID, Widget App ID, and App Group
-for the selected Apple Developer Program team before a device archive is valid.
+Debug uses automatic signing. Release archives use manual Apple Distribution
+signing and the provisioning profiles defined in `project.yml`; both targets
+must resolve their App ID and App Group for the selected team. Store copy and
+review notes belong to [App Store submission](app-store-submission.md).

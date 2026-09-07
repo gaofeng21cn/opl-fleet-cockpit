@@ -1,4 +1,4 @@
-# Ambient Ops Android Kiosk
+# OPL Fleet Cockpit Android Kiosk
 
 This small native Android application owns the HTC display surface. It discovers
 both `_ambient-ops._tcp.local` Gateways and `_opl-fleet-agent._tcp.local` Direct sources
@@ -18,8 +18,15 @@ returns directly to the dashboard.
 
 ## Build and test
 
-The project requires JDK 17 and Android SDK 35. On a Homebrew-based Mac, a
-typical local setup is:
+Build the bundled Direct-mode frontend from the repository root first:
+
+```bash
+npm ci
+npm run build:android
+```
+
+Then run the following commands inside `android-kiosk/`. The project requires
+JDK 17 and Android SDK 35. On a Homebrew-based Mac:
 
 ```bash
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
@@ -30,7 +37,7 @@ export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 The debug APK is written to
 `app/build/outputs/apk/debug/app-debug.apk`.
 
-Use the unsigned release-like variant to qualify optimized production code
+Use the unsigned release-like variant to qualify the release configuration
 without signing credentials:
 
 ```bash
@@ -70,12 +77,17 @@ store. Losing either one makes future in-place Android updates impossible.
 
 Each tagged GitHub Release contains a CI-built APK signed by the same stable
 owner key used by the macOS helper, plus a sibling SHA-256 file. Download both
-files from the release, then verify and install:
+files from the reviewed
+[release](https://github.com/gaofeng21cn/opl-fleet-cockpit/releases).
+Set `KIOSK_APK` to the exact downloaded APK filename, then verify and install:
 
 ```bash
-shasum -a 256 -c Ambient-Ops-Kiosk-1.2.9.apk.sha256
-adb install -r Ambient-Ops-Kiosk-1.2.9.apk
+shasum -a 256 -c "$KIOSK_APK.sha256"
+adb install -r "$KIOSK_APK"
 ```
+
+The release workflow obtains that filename and version from Gradle output;
+do not infer the Android version from the Gateway version.
 
 The GitHub Release APK and checksum are public downloads. A future release
 remains upgrade-compatible only when it keeps the application ID and signing key
@@ -139,7 +151,7 @@ discovery so the display is independent of a development computer.
 
 ## Trusted unattended updates
 
-Version `1.2.1` and later check `/api/v1/kiosk/update` ten seconds after a healthy page
+In Gateway mode the kiosk checks `/api/v1/kiosk/update` ten seconds after a healthy page
 load and every six hours after that. A check runs only while the device is
 on external power and its active network is Wi-Fi. Before invoking the package manager,
 the client verifies:
@@ -186,10 +198,11 @@ Run this acceptance after a signed install or update:
    ```
 
 4. Disconnect USB and cold-reboot the HTC device.
-5. Verify the kiosk becomes Home without interaction, discovers Ambient Ops over
+5. Verify the kiosk becomes Home without interaction, discovers its source over
    Wi-Fi, fills the display, and recovers immersive mode after screen off/on.
-6. Stop the selected Ambient Ops instance. Verify the unavailable state appears
-   and another advertised instance is accepted after the page failure.
+6. Stop the selected Gateway or Direct source. Verify the unavailable state and
+   retry behavior. A pinned rescue URL must not switch to an unrelated instance;
+   without a pin, verify the documented source-selection policy.
 7. Restore the primary instance and reboot once more. Verify the remembered
    healthy instance remains selected while competing advertisements are present.
 
