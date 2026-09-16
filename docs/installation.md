@@ -59,6 +59,14 @@ to the reviewed release, never `latest`. Preserve the actual
 latency and source verification. SNMP compatibility requires real IF-MIB
 Counter64 evidence, not a vendor name. [Home Assistant](home-assistant.md) is optional.
 
+After router replacement, revalidate numeric interface indexes. For stable
+upstream networks, `UNIFI_SNMP_INTERFACES` accepts
+`cidr:<confirmed-WAN-network>/<prefix>` and resolves interface ownership via
+IP-MIB. Missing or ambiguous matches are errors. From a source checkout,
+`node --env-file=.env scripts/discover-unifi.mjs` reports interfaces, addresses
+and three-second counter deltas without writes. Activity alone does not prove
+a WAN role, and an idle backup WAN is not necessarily faulty.
+
 Enter required secrets interactively:
 
 ```bash

@@ -19,7 +19,7 @@ The current collector requires all of the following:
 | Authentication/privacy | Protocol names accepted by the bundled `net-snmp` library; the qualified/default pair is SHA + AES |
 | MIB subtree | IF-MIB `ifXTable`, `1.3.6.1.2.1.31.1.1` |
 | Queried columns | `ifName(1)`, `ifHCInOctets(6)`, `ifHCOutOctets(10)`, `ifHighSpeed(15)`, `ifAlias(18)`; name and both Counter64 columns are functionally required |
-| Selector | Exact case-insensitive match on interface index, `ifName`, or `ifAlias` |
+| Selector | Exact case-insensitive index/name/alias, or `cidr:<approved-WAN-network>/<prefix>` via IPv4 IP-MIB; every WAN selector must match exactly one interface |
 | Counter semantics | Monotonic Counter64 values that include the real WAN traffic |
 
 Two optional capabilities are independent from the WAN counter contract:
@@ -117,7 +117,40 @@ uplink once; Ambient Ops sums them.
 
 Interface indexes may change after a router upgrade or reboot. Prefer a stable
 `ifName` or `ifAlias`, then re-run the walk after a reboot before accepting the
-configuration. The application requires exact matches and does not guess.
+configuration. Every configured WAN selector must resolve uniquely. A missing
+second uplink no longer silently produces a partial, apparently healthy result.
+
+### Automatic discovery after replacement
+
+If the upstream IPv4 networks are known and retained across replacement, use
+CIDR selectors instead of hardware-specific names or indexes. For example:
+
+```dotenv
+UNIFI_SNMP_INTERFACES=cidr:192.0.2.0/24,cidr:198.51.100.0/24
+```
+
+Replace these documentation networks with the confirmed uplink networks.
+The collector reads IP-MIB `ipAddrTable` (`1.3.6.1.2.1.4.20`) each sample and
+matches addresses to `ifIndex`. Its read-only SNMP view must include that table.
+It rebuilds the baseline when the selected interface identity changes. Missing
+or ambiguous matches are errors; two selectors for one interface count it once.
+
+To inspect names, addresses, counters and current selection without changing
+the router or Gateway, use a source checkout with Node.js and installed
+dependencies, the Gateway environment, and local password file paths:
+
+```sh
+node --env-file=.env scripts/discover-unifi.mjs
+```
+
+The command reads `UNIFI_SNMP_AUTH_PASSWORD_FILE` and
+`UNIFI_SNMP_PRIV_PASSWORD_FILE` (or the direct environment equivalents), samples
+for three seconds, and prints a JSON report without credentials. It exits
+nonzero when configured selectors are unresolved. The report lists all
+interfaces for comparison against the approved topology. Traffic alone does
+not establish WAN roles: LAN interfaces also move bytes, while backup WANs can
+be idle. CIDR discovery requires IPv4 addresses and explicitly confirmed WAN
+networks; it cannot infer a completely changed topology or an unnumbered uplink.
 
 ## 3. Configure the Gateway
 

@@ -6,6 +6,7 @@ const IF_X_COLUMNS = [1, 6, 10, 15, 18];
 const IF_TABLE_ENTRY = "1.3.6.1.2.1.2.2.1";
 const IP_NET_TO_MEDIA_TABLE = "1.3.6.1.2.1.4.22";
 const IP_NET_TO_MEDIA_COLUMNS = [1, 2, 4];
+const IP_ADDRESS_TABLE = "1.3.6.1.2.1.4.20";
 
 export function createUnifiSnmpPoller(config, initialClient) {
   let client = initialClient || new NetSnmpClient(config);
@@ -71,10 +72,8 @@ export function createUnifiSnmpPoller(config, initialClient) {
   return async function poll() {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const current = await readInterfaces();
-      const selected = selectInterfaces(current, config.interfaces);
-      if (!selected.length) {
-        throw new Error(`SNMP found no matching WAN interfaces: ${config.interfaces.join(", ")}`);
-      }
+      const selected = resolveWanInterfaces(current, config.interfaces);
+      if (samples.length && interfaceIdentity(resolveWanInterfaces(samples[0], config.interfaces)) !== interfaceIdentity(selected)) samples = [];
 
       if (!samples.length) {
         samples.push(current);
@@ -82,6 +81,11 @@ export function createUnifiSnmpPoller(config, initialClient) {
       }
 
       const next = samples.at(-1) === current ? await readInterfaces() : current;
+      const nextSelected = resolveWanInterfaces(next, config.interfaces);
+      if (interfaceIdentity(selected) !== interfaceIdentity(nextSelected)) {
+        samples = [];
+        continue;
+      }
       samples.push(next);
       trimRateWindow(samples, next.sampledAt.valueOf() - rateWindowMs);
       await refreshAuxiliary(next, auxiliary.refreshedAt === 0);
@@ -127,6 +131,44 @@ export function selectInterfaces(sample, selectors) {
     const candidates = [entry.index, entry.name, entry.alias].map((value) => String(value ?? "").toLowerCase());
     return normalized.some((selector) => candidates.includes(selector));
   });
+}
+
+function interfaceIdentity(interfaces) {
+  return JSON.stringify(interfaces.map(({ index, name, alias, counterBits }) => [index, name, alias, counterBits]));
+}
+
+function ipv4Number(value) {
+  const parts = String(value).split(".");
+  if (parts.length !== 4 || parts.some((part) => !/^\d{1,3}$/.test(part) || Number(part) > 255)) {
+    throw new Error(`Invalid IPv4 address: ${value}`);
+  }
+  return parts.reduce((total, part) => total * 256 + Number(part), 0) >>> 0;
+}
+
+function matchesNetwork(address, selector) {
+  const match = /^cidr:([^/]+)\/(\d{1,2})$/.exec(selector);
+  if (!match || Number(match[2]) > 32) throw new Error(`Invalid WAN network selector: ${selector}`);
+  const prefix = Number(match[2]);
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  return (ipv4Number(address) & mask) === (ipv4Number(match[1]) & mask);
+}
+
+// WAN selection must resolve every configured uplink. Partial matches can silently
+// turn a replaced router's unrelated interface into a healthy zero-rate source.
+export function resolveWanInterfaces(sample, selectors) {
+  if (!selectors?.length) throw new Error("SNMP has no configured WAN interfaces");
+  const indexes = new Set();
+  for (const raw of selectors) {
+    const selector = String(raw).trim().toLowerCase();
+    const matches = selector.startsWith("cidr:")
+      ? sample.interfaces.filter((entry) => (entry.addresses || []).some((address) => matchesNetwork(address, selector)))
+      : selectInterfaces(sample, [selector]);
+    if (matches.length !== 1) {
+      throw new Error(`SNMP WAN selector ${selector} matched ${matches.length} interfaces; rediscover and confirm WAN selection`);
+    }
+    indexes.add(matches[0].index);
+  }
+  return sample.interfaces.filter((entry) => indexes.has(entry.index));
 }
 
 export function parseInterfaceTable(table) {
@@ -255,6 +297,7 @@ function delay(milliseconds) {
 export class NetSnmpClient {
   constructor(config, session) {
     this.interfaceSelectors = config.interfaces || [];
+    this.discoverAddresses = config.discoverAddresses || this.interfaceSelectors.some((selector) => String(selector).trim().toLowerCase().startsWith("cidr:"));
     if (session) {
       this.session = session;
       return;
@@ -284,7 +327,16 @@ export class NetSnmpClient {
       });
     });
     let interfaces = parseInterfaceTable(table);
-    const selected = selectInterfaces({ interfaces }, this.interfaceSelectors);
+    if (this.discoverAddresses) {
+      const addresses = await new Promise((resolve, reject) => {
+        this.session.tableColumns(IP_ADDRESS_TABLE, [1, 2], 20, (error, rows) => error ? reject(error) : resolve(rows));
+      });
+      interfaces = interfaces.map((entry) => ({
+        ...entry,
+        addresses: Object.values(addresses || {}).filter((row) => Number(row[2]) === entry.index).map((row) => text(row[1])),
+      }));
+    }
+    const selected = this.interfaceSelectors.length ? resolveWanInterfaces({ interfaces }, this.interfaceSelectors) : [];
     const counter32Fallback = selected.filter((entry) => entry.counterBits === null);
     if (counter32Fallback.length) {
       const counters = await this.readCounter32(counter32Fallback);

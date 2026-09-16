@@ -8,9 +8,59 @@ import {
   NetSnmpClient,
   parseInterfaceTable,
   selectInterfaces,
+  resolveWanInterfaces,
 } from "./unifi-snmp.mjs";
 
 const sample = (at, interfaces) => ({ sampledAt: new Date(at), interfaces });
+
+test("rejects partial matches after a router replacement instead of reporting live zero traffic", () => {
+  assert.throws(() => resolveWanInterfaces({ interfaces: [
+    { index: 23, name: "enP2p1s0v15", alias: "" },
+    { index: 30, name: "eth8", addresses: ["192.168.100.209"] },
+  ] }, ["23", "3"]), /selector 3 matched 0/);
+});
+
+test("resolves approved WAN networks independently of interface names and indexes", () => {
+  const interfaces = [
+    { index: 23, name: "unused", addresses: [] },
+    { index: 30, name: "eth8", addresses: ["192.168.100.209"] },
+    { index: 31, name: "eth9", addresses: ["192.168.10.43"] },
+    { index: 51, name: "br0", addresses: ["192.168.1.1"] },
+  ];
+  const selectors = ["cidr:192.168.100.0/24", "cidr:192.168.10.0/24"];
+  assert.deepEqual(resolveWanInterfaces({ interfaces }, selectors).map(x => x.index), [30, 31]);
+  interfaces[1] = { index: 70, name: "new-wan", addresses: ["192.168.100.88"] };
+  assert.deepEqual(resolveWanInterfaces({ interfaces }, selectors).map(x => x.index), [70, 31]);
+  assert.throws(() => resolveWanInterfaces({ interfaces }, ["cidr:192.168.0.0/16"]), /matched 3/);
+  assert.throws(() => resolveWanInterfaces({ interfaces }, ["cidr:192.168.0.0/33"]), /Invalid WAN network/);
+  assert.deepEqual(resolveWanInterfaces({ interfaces }, ["70", selectors[0]]).map(x => x.index), [70]);
+});
+
+test("reads IPv4 address ownership before resolving CIDR WAN selectors", async () => {
+  const client = new NetSnmpClient({ interfaces: ["cidr:192.168.100.0/24"] }, {
+    tableColumns: (oid, columns, repetitions, callback) => callback(null,
+      oid === "1.3.6.1.2.1.4.20"
+        ? { a: { 1: "192.168.100.209", 2: 30 }, b: { 1: "192.168.1.1", 2: 51 } }
+        : { 30: { 1: "eth8", 6: 1000n, 10: 2000n }, 51: { 1: "br0", 6: 0n, 10: 0n } }),
+  });
+  const current = await client.readInterfaces();
+  assert.equal(resolveWanInterfaces(current, ["cidr:192.168.100.0/24"])[0].name, "eth8");
+});
+
+test("rebuilds the baseline when the same index is reused by a new interface", async () => {
+  const values = [
+    ["old-wan", 10n], ["old-wan", 20n], ["new-wan", 1000000n], ["new-wan", 1000010n],
+  ].map(([name, bytes], i) => sample(i * 1000, [{
+    index: 30, name, addresses: ["192.168.100.2"], inOctets: bytes, outOctets: bytes,
+  }]));
+  const poll = createUnifiSnmpPoller({ interfaces: ["cidr:192.168.100.0/24"], pollMs: 1 }, {
+    readInterfaces: async () => values.shift(),
+  });
+  const first = await poll();
+  const replaced = await poll();
+  assert.equal(replaced.downloadMbps, first.downloadMbps);
+  assert.equal(replaced.interfaces[0].name, "new-wan");
+});
 
 test("decodes an unsigned 64-bit SNMP counter without precision loss", () => {
   assert.equal(counter64(Buffer.from("0020000000000001", "hex")), 9_007_199_254_740_993n);
