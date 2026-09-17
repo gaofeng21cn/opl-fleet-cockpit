@@ -109,6 +109,8 @@ node -e '
 ' "$health_file" "$revision_file"
 grep -qi '^cache-control: no-store' "$revision_headers"
 expected_revision=$(docker exec "$container_id" sha256sum /app/dist/index.html | cut -d' ' -f1)
+docker exec "$container_id" test -f scripts/discover-unifi.mjs ||
+  { echo "image is missing scripts/discover-unifi.mjs" >&2; exit 1; }
 actual_revision=$(node -p \
   "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).revision" \
   "$revision_file")

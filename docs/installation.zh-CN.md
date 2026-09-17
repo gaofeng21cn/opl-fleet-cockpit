@@ -55,9 +55,15 @@ SNMP 兼容性需要真实 IF-MIB Counter64 证据，不能按品牌判断。
 
 更换路由器时不要沿用未经验证的数字接口编号。上游网段固定时，
 `UNIFI_SNMP_INTERFACES` 支持 `cidr:<已确认的WAN网段>/<前缀长度>`，自动查询
-IP-MIB 地址表并重新匹配接口；缺失或多义匹配会报错。源码中的
-`node --env-file=.env scripts/discover-unifi.mjs` 可只读列出接口、地址和三秒
-计数增量，辅助确认。流量增长不等于 WAN 身份，备用 WAN 空闲也不等于故障。
+IP-MIB 地址表并重新匹配接口；缺失或多义匹配会报错。镜像已包含
+`scripts/discover-unifi.mjs`，容器内可只读列出接口、地址和三秒计数增量：
+
+```bash
+docker exec opl-fleet-cockpit-gateway-1 node scripts/discover-unifi.mjs
+```
+
+源码目录改用 `node --env-file=.env scripts/discover-unifi.mjs`。流量增长不等于
+WAN 身份，备用 WAN 空闲也不等于故障。
 
 通过交互式命令录入所需凭据：
 

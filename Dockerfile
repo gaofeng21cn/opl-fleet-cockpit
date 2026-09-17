@@ -22,6 +22,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY server ./server
+COPY scripts/discover-unifi.mjs ./scripts/discover-unifi.mjs
 COPY src/load-model.mjs ./src/load-model.mjs
 COPY src/status-history.mjs ./src/status-history.mjs
 COPY kiosk-release ./kiosk-release

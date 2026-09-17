@@ -62,10 +62,13 @@ Counter64 evidence, not a vendor name. [Home Assistant](home-assistant.md) is op
 After router replacement, revalidate numeric interface indexes. For stable
 upstream networks, `UNIFI_SNMP_INTERFACES` accepts
 `cidr:<confirmed-WAN-network>/<prefix>` and resolves interface ownership via
-IP-MIB. Missing or ambiguous matches are errors. From a source checkout,
-`node --env-file=.env scripts/discover-unifi.mjs` reports interfaces, addresses
-and three-second counter deltas without writes. Activity alone does not prove
-a WAN role, and an idle backup WAN is not necessarily faulty.
+IP-MIB. Missing or ambiguous matches are errors. The Gateway image carries
+`scripts/discover-unifi.mjs`, so
+`docker exec opl-fleet-cockpit-gateway-1 node scripts/discover-unifi.mjs`
+reports interfaces, addresses and three-second counter deltas without writes; a
+source checkout uses `node --env-file=.env scripts/discover-unifi.mjs` instead.
+Activity alone does not prove a WAN role, and an idle backup WAN is not
+necessarily faulty.
 
 Enter required secrets interactively:
 

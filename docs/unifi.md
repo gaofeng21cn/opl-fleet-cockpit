@@ -136,8 +136,15 @@ It rebuilds the baseline when the selected interface identity changes. Missing
 or ambiguous matches are errors; two selectors for one interface count it once.
 
 To inspect names, addresses, counters and current selection without changing
-the router or Gateway, use a source checkout with Node.js and installed
-dependencies, the Gateway environment, and local password file paths:
+the router or Gateway, run the report inside the released Gateway container,
+which already carries the environment and the secret mount:
+
+```sh
+docker exec opl-fleet-cockpit-gateway-1 node scripts/discover-unifi.mjs
+```
+
+From a source checkout, the same report runs with Node.js and installed
+dependencies plus the Gateway environment and local password file paths:
 
 ```sh
 node --env-file=.env scripts/discover-unifi.mjs
