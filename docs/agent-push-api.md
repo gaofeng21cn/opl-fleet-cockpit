@@ -1,10 +1,43 @@
-# OPL Fleet Agent Push API
+# OPL Fleet Agent Telemetry API
 
 `OPL Fleet Agent` pushes aggregate metrics to the API owned by
 `OPL Fleet Cockpit Gateway`. The Gateway never
 requests local session files and retains only the allowlist below.
 
-## Request
+## Read-only status for Agents
+
+`GET /api/v1/status` is the public status contract used by native display
+clients. Agents can request `GET /api/v1/status?view=summary` for a compact
+projection of that same dashboard:
+
+```sh
+curl --fail --silent 'http://<gateway>:8787/api/v1/status?view=summary'
+```
+
+The summary identifies its `view`, `access: "read_only"`, and
+`authority: "observation_only"`. `instanceId`, `serverVersion`, and `provider`
+identify the serving Gateway. Each machine retains its `machineId`, name,
+platform and the original `oplFleet` envelope as `source`, including the
+reported stable node ID and Agent version. Legacy snapshots have `source: null`;
+the summary does not invent a provider version or publication state.
+
+`generatedAt` is the response generation time. A machine's `observedAt` is its
+original snapshot `generatedAt`; `receivedAt` is the Gateway ingestion time.
+The network's `observedAt` comes from its original `updatedAt`. Each observation
+also contains `freshness.state` (`fresh`, `stale`, `error`, or `unavailable`),
+`ageSeconds`, and `lastKnown`. Missing observations remain unavailable. Stale
+and error observations retain their last metrics and must not be treated as
+current activity. Fleet totals use the same live-only aggregation as the
+continuous display; retired machines are absent from both views.
+
+The summary preserves the `demo` flag and omits histories, visual presentation,
+pets, and diagnostic error text. A GET reads existing normalized state without
+collecting files, issuing commands, or changing device state. It uses the same
+trusted-LAN/private-VPN access boundary as the display; see
+[security](security.md). The full status, Web display, Kiosk, and iOS client
+remain available for persistent observation and detailed trends.
+
+## Push request
 
 ```http
 POST /api/v1/agents/{machineId}/snapshot

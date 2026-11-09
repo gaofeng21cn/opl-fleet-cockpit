@@ -51,6 +51,69 @@ export function buildPublicStatus(dashboard, {
   };
 }
 
+// A compact projection of the same public status read by native clients.
+// It deliberately keeps source times separate from response generation time.
+export function buildStatusSummary(status) {
+  return {
+    schemaVersion: status.schemaVersion,
+    view: "summary",
+    access: "read_only",
+    authority: "observation_only",
+    productName: status.productName,
+    instanceId: status.instanceId,
+    serverVersion: status.serverVersion,
+    generatedAt: status.generatedAt,
+    demo: status.demo,
+    provider: status.provider,
+    overallStatus: status.overallStatus,
+    network: {
+      status: status.network.status,
+      source: status.network.source || null,
+      observedAt: status.network.updatedAt || null,
+      freshness: observationFreshness(status.network, status.network.updatedAt),
+      downloadMbps: status.network.downloadMbps ?? null,
+      uploadMbps: status.network.uploadMbps ?? null,
+    },
+    fleet: {
+      status: status.fleet.status,
+      machineCount: status.fleet.machineCount,
+      liveMachineCount: status.fleet.liveMachineCount,
+      staleMachineCount: status.fleet.staleMachineCount,
+      oneMinuteTps: status.fleet.oneMinuteTps,
+      fiveMinuteTps: status.fleet.fiveMinuteTps,
+      activeSessions: status.fleet.activeSessions,
+    },
+    machines: status.machines.map((machine) => ({
+      machineId: machine.machineId,
+      machineName: machine.machineName,
+      platform: machine.platform,
+      status: machine.status,
+      observedAt: machine.generatedAt || null,
+      receivedAt: machine.receivedAt || null,
+      freshness: observationFreshness(machine, machine.generatedAt),
+      source: machine.oplFleet || null,
+      oneMinuteTps: machine.oneMinute?.tps ?? null,
+      fiveMinuteTps: machine.fiveMinutes?.tps ?? null,
+      activeSessions: machine.activeSessions ?? null,
+      cpuPercent: machine.cpuPercent ?? null,
+      memoryPercent: machine.memoryPercent ?? null,
+    })),
+  };
+}
+
+function observationFreshness(observation, observedAt) {
+  const hasObservation = typeof observedAt === "string" && Number.isFinite(Date.parse(observedAt));
+  const state = !hasObservation || observation.status === "unavailable"
+    ? "unavailable"
+    : observation.status === "live" ? "fresh"
+      : observation.status === "stale" ? "stale" : "error";
+  return {
+    state,
+    ageSeconds: hasObservation ? observation.ageSeconds ?? null : null,
+    lastKnown: hasObservation && state !== "fresh",
+  };
+}
+
 function projectFleet(fleet) {
   const load = fleetLoadPresentation(fleet);
   return {

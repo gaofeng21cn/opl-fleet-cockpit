@@ -38,6 +38,7 @@ import {
 } from "./ui-revision.mjs";
 import {
   buildPublicStatus,
+  buildStatusSummary,
   PUBLIC_STATUS_PATH,
 } from "./public-status.mjs";
 import packageMetadata from "../package.json" with { type: "json" };
@@ -238,10 +239,13 @@ const server = createServer(async (request, response) => {
       return await json(response, 200, dashboard());
     }
     if (request.method === "GET" && url.pathname === PUBLIC_STATUS_PATH) {
-      return await json(response, 200, buildPublicStatus(dashboard(), {
+      const status = buildPublicStatus(dashboard(), {
         instanceId,
         serverVersion: packageMetadata.version,
-      }));
+      });
+      return await json(response, 200, url.searchParams.get("view") === "summary"
+        ? buildStatusSummary(status)
+        : status);
     }
     if (["GET", "HEAD"].includes(request.method) && url.pathname === UI_REVISION_PATH) {
       const body = Buffer.from(JSON.stringify({ revision: uiRevision }));

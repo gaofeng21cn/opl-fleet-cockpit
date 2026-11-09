@@ -17,7 +17,7 @@
 | [iOS 支持](ios-support.md) | 面向用户的求助入口 | 仓库 Issue 入口 |
 | [隐私政策](privacy-policy.md) | 面向用户的数据处理承诺 | iOS 网络、存储与隐私声明 |
 | [安全边界](security.md) | 部署信任边界、认证与凭据要求 | 服务端认证、Compose 与存储 |
-| [Agent 上报 API](agent-push-api.md) | 入站快照、认证、素材及新鲜度协议 | `server/server.mjs`、`status-model.mjs`、`pairing.mjs` |
+| [Agent 遥测 API](agent-push-api.md) | 入站快照、只读状态摘要、认证、素材及新鲜度协议 | `server/server.mjs`、`status-model.mjs`、`pairing.mjs` |
 | [路由器采集](unifi.md) | SNMPv3 兼容性、配置及 UniFi API | `server/unifi-snmp.mjs`、`server/unifi.mjs` |
 | [Home Assistant](home-assistant.md) | 可选下游状态同步 | `server/home-assistant.mjs` |
 | [独立实现决策](prior-art.md) | 保留选择专用服务的设计理由 | 当前服务边界和依赖 |
