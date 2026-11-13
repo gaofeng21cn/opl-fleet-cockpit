@@ -18,6 +18,7 @@ services:
       SITE_NAME: ${SITE_NAME:-OPL Fleet Cockpit}
       DISPLAY_TIME_ZONE: ${DISPLAY_TIME_ZONE:-Asia/Shanghai}
       DISCOVERY_ENABLED: "true"
+      DISCOVERY_INTERFACE: ${DISCOVERY_INTERFACE:-}
       INSTANCE_ID: ${INSTANCE_ID:-}
       AGENT_PUSH_TOKEN_FILE: /run/secrets/agent_push_token
       DEVICE_PAIRING_ENABLED: ${DEVICE_PAIRING_ENABLED:-true}

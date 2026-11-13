@@ -10,6 +10,8 @@ This tutorial owns Docker installation, routine upgrades and rollback.
 
 Use a Linux Docker host with Compose v2, Git, curl and OpenSSL. Production
 serves trusted LAN clients on TCP/8787 and publishes mDNS over UDP/5353.
+Leave `DISCOVERY_INTERFACE` empty unless the host has more than one physical LAN
+interface; discovery publishes only the selected IPv4 address.
 The service has no browser login: apply the [security boundary](security.md).
 SNMPv3 additionally needs IPv4/UDP 161 to a qualified router.
 

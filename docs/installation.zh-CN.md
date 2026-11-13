@@ -10,6 +10,8 @@
 Linux Docker 主机需具备 Compose v2、Git、curl 和 OpenSSL。生产通过 TCP/8787
 向可信局域网提供服务，通过 UDP/5353 发布 mDNS。服务没有浏览器登录，须遵守
 [安全边界](security.md)。SNMPv3 另需通过 IPv4/UDP 161 访问经验证的路由器。
+仅当主机存在多个物理局域网接口时才设置 `DISCOVERY_INTERFACE`；发现记录只发布
+选定接口的 IPv4 地址。
 
 发布工作流构建公开的 `linux/amd64` 与 `linux/arm64` 镜像。选择经过审查的发布并核对附件；
 默认镜像引用由 `.env.example` 拥有，本教程不维护“最新已发布版本”。公开拉取不需要

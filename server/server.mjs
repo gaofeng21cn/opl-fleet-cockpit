@@ -420,6 +420,7 @@ const discovery = createDiscoveryPublisher({
   instanceId,
   name: config.siteName,
   host: process.env.DISCOVERY_HOST || "",
+  interfaceAddress: process.env.DISCOVERY_INTERFACE || "",
   port: config.port,
   pairingEnabled: config.pairingEnabled,
   version: packageMetadata.version,

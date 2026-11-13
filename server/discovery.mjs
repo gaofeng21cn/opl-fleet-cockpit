@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
-import { hostname as systemHostname } from "node:os";
+import { hostname as systemHostname, networkInterfaces as systemNetworkInterfaces } from "node:os";
 import { Bonjour } from "bonjour-service";
 
 export const DISCOVERY_SERVICE_TYPE = "ambient-ops";
@@ -36,14 +36,20 @@ export function createDiscoveryPublisher({
   apiPath = "/api/v1/status",
   pairingEnabled = true,
   version = "0.1.5",
-  bonjour = new Bonjour(),
+  interfaceAddress = "",
+  bonjour = null,
 }) {
   let service = null;
+  let client = bonjour;
 
   return {
     start() {
       if (!enabled || service) return;
-      service = bonjour.publish({
+      const discoveryAddress = resolveDiscoveryInterface(interfaceAddress);
+      if (!client) {
+        client = new Bonjour(discoveryAddress ? { interface: discoveryAddress } : {});
+      }
+      service = client.publish({
         name: String(name || "Ambient Ops").slice(0, 63),
         host: normalizeDiscoveryHost(host),
         type: DISCOVERY_SERVICE_TYPE,
@@ -59,12 +65,17 @@ export function createDiscoveryPublisher({
           version: String(version).slice(0, 32),
         },
       });
+      if (discoveryAddress) {
+        restrictDiscoveryRecords(service, discoveryAddress);
+      }
     },
     async stop() {
       service?.stop?.();
       service = null;
-      await new Promise((resolve) => bonjour.unpublishAll(resolve));
-      bonjour.destroy();
+      if (!client) return;
+      await new Promise((resolve) => client.unpublishAll(resolve));
+      client.destroy();
+      client = null;
     },
   };
 }
@@ -91,7 +102,41 @@ export function normalizeInstanceId(value) {
   return /^[a-z0-9][a-z0-9._-]{0,79}$/.test(normalized) ? normalized : "";
 }
 
+export function resolveDiscoveryInterface(value = "", interfaces = systemNetworkInterfaces()) {
+  const configured = String(value || "").trim();
+  if (configured) {
+    const addresses = Object.values(interfaces).flatMap((entries) => entries || []);
+    return addresses.some((entry) =>
+      entry.address === configured
+      && !entry.internal
+      && (entry.family === "IPv4" || entry.family === 4))
+      ? configured
+      : "";
+  }
+
+  return Object.entries(interfaces)
+    .filter(([name]) => !isVirtualInterface(name))
+    .flatMap(([, entries]) => entries || [])
+    .find((entry) =>
+      !entry.internal
+      && (entry.family === "IPv4" || entry.family === 4)
+      && !entry.address.startsWith("169.254."))
+    ?.address || "";
+}
+
+export function restrictDiscoveryRecords(service, address) {
+  if (!service || typeof service.records !== "function" || !address) return service;
+  const records = service.records.bind(service);
+  service.records = () => records().filter((record) =>
+    record.type !== "A" && record.type !== "AAAA" || record.data === address);
+  return service;
+}
+
 function normalizePath(value, fallback) {
   const path = String(value || fallback).trim();
   return path.startsWith("/") ? path.slice(0, 160) : fallback;
+}
+
+function isVirtualInterface(name) {
+  return /^(?:br-|docker|veth|virbr|tailscale|tun|tap)/i.test(name);
 }

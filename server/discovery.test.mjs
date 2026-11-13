@@ -7,6 +7,8 @@ import {
   createDiscoveryPublisher,
   normalizeDiscoveryHost,
   normalizeInstanceId,
+  resolveDiscoveryInterface,
+  restrictDiscoveryRecords,
   resolveInstanceId,
 } from "./discovery.mjs";
 
@@ -31,6 +33,45 @@ test("publishes a resolvable local discovery hostname", () => {
   assert.equal(normalizeDiscoveryHost("invalid host", "fallback-nas"), "fallback-nas.local");
 });
 
+test("selects a physical LAN address instead of a container bridge", () => {
+  const interfaces = {
+    docker0: [
+      { address: "172.17.0.1", family: "IPv4", internal: false },
+    ],
+    eth2: [
+      { address: "192.168.1.170", family: "IPv4", internal: false },
+      { address: "fe80::1", family: "IPv6", internal: false },
+    ],
+    tailscale0: [
+      { address: "100.71.43.17", family: "IPv4", internal: false },
+    ],
+  };
+
+  assert.equal(resolveDiscoveryInterface("", interfaces), "192.168.1.170");
+  assert.equal(resolveDiscoveryInterface("172.17.0.1", interfaces), "172.17.0.1");
+  assert.equal(resolveDiscoveryInterface("not-an-interface", interfaces), "");
+});
+
+test("publishes only the selected address for the discovery hostname", () => {
+  const service = {
+    records() {
+      return [
+        { name: "_ambient-ops._tcp.local", type: "PTR" },
+        { name: "home.local", type: "A", data: "192.168.1.170" },
+        { name: "home.local", type: "A", data: "172.17.0.1" },
+        { name: "home.local", type: "AAAA", data: "fe80::1" },
+      ];
+    },
+  };
+
+  restrictDiscoveryRecords(service, "192.168.1.170");
+
+  assert.deepEqual(service.records(), [
+    { name: "_ambient-ops._tcp.local", type: "PTR" },
+    { name: "home.local", type: "A", data: "192.168.1.170" },
+  ]);
+});
+
 test("publishes the shared Ambient Ops discovery contract", async () => {
   let published;
   let destroyed = false;
@@ -52,6 +93,7 @@ test("publishes the shared Ambient Ops discovery contract", async () => {
     host: "ambient-nas",
     port: 8791,
     version: "0.1.5",
+    interfaceAddress: "192.168.1.170",
     bonjour,
   });
 
