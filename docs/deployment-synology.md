@@ -29,6 +29,9 @@ to create a second project. Keep `INSTANCE_ID` independent of the host address.
 Set `DISCOVERY_INTERFACE` only when automatic LAN-interface selection is wrong.
 The Gateway publishes A records for the selected interface so container bridge
 addresses cannot be offered as discovery targets.
+Its UDP socket listens on `0.0.0.0:5353` and joins the multicast group on that
+interface. Binding the receive socket to the interface's unicast IP prevents
+Linux from delivering multicast queries, even if startup announcements work.
 
 The volume name comes from `OPL_FLEET_COCKPIT_DATA_VOLUME`, defaulting to
 `opl-fleet-cockpit_data`. Read the actual `/data` mount before recreation.

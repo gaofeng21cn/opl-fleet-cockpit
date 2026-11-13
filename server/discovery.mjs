@@ -47,7 +47,11 @@ export function createDiscoveryPublisher({
       if (!enabled || service) return;
       const discoveryAddress = resolveDiscoveryInterface(interfaceAddress);
       if (!client) {
-        client = new Bonjour(discoveryAddress ? { interface: discoveryAddress } : {});
+        // Linux must receive queries sent to the multicast group, not only
+        // datagrams addressed to this interface's unicast IP.
+        client = new Bonjour(discoveryAddress
+          ? { bind: "0.0.0.0", interface: discoveryAddress }
+          : {});
       }
       service = client.publish({
         name: String(name || "Ambient Ops").slice(0, 63),
