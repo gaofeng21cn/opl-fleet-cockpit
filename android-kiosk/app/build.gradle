@@ -25,10 +25,13 @@ def releaseSigningReady =
     missingReleaseSigningVariables.isEmpty()
         && releaseKeystoreFile != null
         && releaseKeystoreFile.isFile()
-def ambientOpsVersionCode =
-    providers.gradleProperty("ambientOpsVersionCode").getOrElse("23").toInteger()
-def ambientOpsVersionName =
-    providers.gradleProperty("ambientOpsVersionName").getOrElse("1.2.19")
+def productVersion = new groovy.json.JsonSlurper().parse(rootProject.file("../package.json")).version
+def productBuild = new groovy.json.JsonSlurper().parse(rootProject.file("product-build.json"))
+if (productBuild.version != productVersion) {
+    throw new GradleException("Run node scripts/prepare-product-release.mjs before packaging")
+}
+def ambientOpsVersionCode = providers.gradleProperty("ambientOpsVersionCode").getOrElse(productBuild.versionCode.toString()).toInteger()
+def ambientOpsVersionName = productVersion
 
 android {
     namespace "cn.gaofeng.ambientops.kiosk"
