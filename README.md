@@ -105,6 +105,12 @@ apply when delegating installation.
 
 ## Development
 
+The shared OPL daily product workflow checks delivery changes on `main`, prepares
+the product version through CI, and creates its immutable source tag. This
+repository's release workflow owns the signed Kiosk APK and Docker image. Both
+display the `package.json` version; Android's internal build counter increments
+independently for upgrades. Publication does not deploy the Gateway or update a kiosk.
+
 ```bash
 npm ci
 npm test
