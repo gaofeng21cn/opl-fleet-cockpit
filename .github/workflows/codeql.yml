@@ -38,6 +38,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          problem-matcher: true
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
