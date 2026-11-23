@@ -27,8 +27,7 @@ sources and unique machines separately from HTTP liveness.
 
 ## Recovery helpers
 
-Keep `cn.gaofeng.opl-fleet-agent-headless` disabled while the desktop Agent
-sends for the same machine. The `cn.gaofeng.ambient-ops.adb-kiosk` plist and
+The `cn.gaofeng.ambient-ops.adb-kiosk` plist and
 `adb-kiosk-watch.sh` are bounded USB recovery tools, unloaded in normal operation.
 Android behavior and acceptance belong to the [kiosk guide](../android-kiosk/README.md).
 

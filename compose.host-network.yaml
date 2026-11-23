@@ -1,8 +1,0 @@
-# Compatibility override for existing operator commands. The root production
-# file is already host-networked so DSM can consume it as a single file.
-services:
-  gateway:
-    network_mode: host
-    ports: !reset []
-    environment:
-      DISCOVERY_ENABLED: "true"

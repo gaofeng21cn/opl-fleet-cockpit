@@ -10,7 +10,6 @@
 | [群晖部署](deployment-synology.md) | DSM 与受限部署命令的宿主差异 | `ops/synology/opl-fleet-cockpit-deploy` 与安装脚本 |
 | [宿主迁移](host-migration.md) | 搬迁现有实例时的单写入者切换与数据连续性 | `server/store.mjs`、`server/pairing.mjs` 和实际卷 |
 | [macOS 运行参考](macos-runtime.md) | 现存 LaunchAgent 运行与恢复 | `ops/macos/install-runtime.sh` |
-| [NAS 备份审计](nas-backup-audit.md) | 可选的只读 Hyper Backup 回读 | `ops/synology/opl-nas-audit` |
 | [Android Kiosk](../android-kiosk/README.md) | 专用显示端构建、签名、安装和设备验收 | Android 源码、Gradle 与 release workflow |
 | [iOS 客户端](ios-app.md) | 原生客户端行为及开发构建 | `ios-app/Sources`、`ios-app/project.yml` |
 | [App Store 提交](app-store-submission.md) | 待提交元数据和审核说明 | iOS 项目配置；外部状态由 App Store Connect 拥有 |

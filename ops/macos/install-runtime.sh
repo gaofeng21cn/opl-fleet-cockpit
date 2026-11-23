@@ -15,7 +15,6 @@ HEALTH_URL="${AMBIENT_OPS_HEALTH_URL:-http://127.0.0.1:8791/healthz}"
 EXECUTABLE_PATH="${AMBIENT_OPS_EXECUTABLE_PATH:-/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin}"
 NODE_PATH="${AMBIENT_OPS_NODE_PATH:-$(command -v node 2>/dev/null || true)}"
 ADB_PATH="${ADB_PATH:-$(command -v adb 2>/dev/null || true)}"
-OPL_FLEET_AGENT_HEADLESS_PATH="${OPL_FLEET_AGENT_HEADLESS_PATH:-$(command -v opl-fleet-agent-headless 2>/dev/null || true)}"
 KEYCHAIN_ACCOUNT="${KEYCHAIN_ACCOUNT:-${USER:-$(id -un)}}"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 SITE_NAME="${SITE_NAME:-Ambient Ops}"
@@ -105,20 +104,6 @@ render_launch_agents() {
     "EnvironmentVariables.NETWORK_AUXILIARY_POLL_MS" "$NETWORK_AUXILIARY_POLL_MS" \
     "StandardOutPath" "$LOG_DIR/server.out.log" \
     "StandardErrorPath" "$LOG_DIR/server.err.log"
-
-  render_plist \
-    "$MACOS_OPS_DIR/cn.gaofeng.opl-fleet-agent-headless.plist" \
-    "$target_dir/cn.gaofeng.opl-fleet-agent-headless.plist" \
-    "ProgramArguments.0" "${OPL_FLEET_AGENT_HEADLESS_PATH:-/usr/bin/false}" \
-    "EnvironmentVariables.PATH" "$EXECUTABLE_PATH" \
-    "EnvironmentVariables.CODEX_HOME" "$CODEX_HOME" \
-    "EnvironmentVariables.OPL_FLEET_AGENT_AMBIENT_URL" "$OPL_FLEET_AGENT_AMBIENT_URL" \
-    "EnvironmentVariables.OPL_FLEET_AGENT_AMBIENT_TOKEN_KEYCHAIN_SERVICE" "$AGENT_PUSH_TOKEN_KEYCHAIN_SERVICE" \
-    "EnvironmentVariables.OPL_FLEET_AGENT_KEYCHAIN_ACCOUNT" "$KEYCHAIN_ACCOUNT" \
-    "EnvironmentVariables.OPL_FLEET_AGENT_MACHINE_ID" "$OPL_FLEET_AGENT_MACHINE_ID" \
-    "EnvironmentVariables.OPL_FLEET_AGENT_MACHINE_NAME" "$OPL_FLEET_AGENT_MACHINE_NAME" \
-    "StandardOutPath" "$LOG_DIR/opl-fleet-agent-headless.out.log" \
-    "StandardErrorPath" "$LOG_DIR/opl-fleet-agent-headless.err.log"
 
   render_plist \
     "$MACOS_OPS_DIR/cn.gaofeng.ambient-ops.adb-kiosk.plist" \

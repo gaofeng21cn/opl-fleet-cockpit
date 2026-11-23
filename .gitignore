@@ -15,6 +15,7 @@ android-kiosk/app/src/main/assets/ambient-ops/
 ios-app/*.xcodeproj/
 ios-app/.build/
 ios-app/DerivedData*/
+ios-app/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
 *.log
 *.pem
 *.key

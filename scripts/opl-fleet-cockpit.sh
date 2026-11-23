@@ -160,7 +160,6 @@ compose() {
     --env-file "$ENV_FILE" \
     -p "$PROJECT_NAME" \
     -f "$PROJECT_DIR/compose.yaml" \
-    -f "$PROJECT_DIR/compose.host-network.yaml" \
     "$@"
 }
 

@@ -1,8 +1,0 @@
-#!/bin/sh
-set -eu
-
-SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-if [ -x "$SCRIPT_DIR/opl-fleet-cockpit-deploy" ]; then
-  exec "$SCRIPT_DIR/opl-fleet-cockpit-deploy" "$@"
-fi
-exec /usr/local/sbin/opl-fleet-cockpit-deploy "$@"

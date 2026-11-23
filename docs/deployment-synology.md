@@ -114,4 +114,4 @@ deployed after boot remains unverified. The read-only status command never reboo
 
 Source health, unique Agent machines and in-scope displays still require
 [installation acceptance](installation.md). Optional Hyper Backup evidence
-belongs to [NAS backup audit](nas-backup-audit.md), independently of Gateway deployment.
+belongs to NAS operations, independently of Gateway deployment.

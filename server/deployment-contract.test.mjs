@@ -35,20 +35,6 @@ test("production Compose is self-contained for DSM single-file projects", async 
   assert.equal(config.volumes?.cockpit_data?.name, "opl-fleet-cockpit_data");
 });
 
-test("legacy host override preserves the same production invariants", async (t) => {
-  const config = renderCompose(["compose.yaml", "compose.host-network.yaml"]);
-  if (!config) {
-    t.skip("Docker Compose is not installed");
-    return;
-  }
-
-  const service = config.services?.gateway;
-  assert.ok(service);
-  assert.equal(service.network_mode, "host");
-  assert.equal(service.environment.DISCOVERY_ENABLED, "true");
-  assert.equal(service.ports, undefined);
-});
-
 test("local build overlay explicitly switches away from host networking", async () => {
   const compose = await readFile(join(repoRoot, "compose.local-build.yaml"), "utf8");
   assert.match(compose, /network_mode:\s*bridge/);

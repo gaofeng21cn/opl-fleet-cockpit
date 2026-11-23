@@ -23,6 +23,19 @@ targets:
       - path: Sources/App
       - path: Sources/Shared
       - path: Resources
+      - path: ../public/pets/ledger-owl/spritesheet.webp
+        buildPhase: resources
+      - path: ../public/load/operator-workbench.webp
+        buildPhase: resources
+    preBuildScripts:
+      - name: Stage AppIcon from canonical public asset
+        script: |
+          mkdir -p "${SRCROOT}/Resources/Assets.xcassets/AppIcon.appiconset"
+          cp -f "${SRCROOT}/../public/opl-fleet-cockpit-icon.png" "${SRCROOT}/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+        inputFiles:
+          - $(SRCROOT)/../public/opl-fleet-cockpit-icon.png
+        outputFiles:
+          - $(SRCROOT)/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
     info:
       path: Config/OPLFleetCockpit-Info.plist
       properties:
@@ -57,7 +70,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIRequiresFullScreen: false
     entitlements:
-      path: Config/OPLFleetCockpit.entitlements
+      path: Config/Shared.entitlements
       properties:
         com.apple.security.application-groups:
           - group.cn.gaofeng.oplfleetcockpit
@@ -95,7 +108,7 @@ targets:
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     entitlements:
-      path: Config/OPLFleetCockpitWidgets.entitlements
+      path: Config/Shared.entitlements
       properties:
         com.apple.security.application-groups:
           - group.cn.gaofeng.oplfleetcockpit
