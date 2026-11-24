@@ -14,6 +14,7 @@ services:
     environment:
       PORT: "8787"
       DATA_DIR: /data
+      NODE_OPTIONS: ${NODE_OPTIONS:---max-old-space-size=128}
       DEMO_MODE: ${DEMO_MODE:-true}
       SITE_NAME: ${SITE_NAME:-OPL Fleet Cockpit}
       DISPLAY_TIME_ZONE: ${DISPLAY_TIME_ZONE:-Asia/Shanghai}
@@ -27,8 +28,9 @@ services:
       UNIFI_API_KEY_FILE: /run/secrets/unifi_api_key
       UNIFI_ALLOW_SELF_SIGNED: ${UNIFI_ALLOW_SELF_SIGNED:-false}
       UNIFI_CA_FILE: ${UNIFI_CA_FILE:-}
-      UNIFI_POLL_MS: ${UNIFI_POLL_MS:-250}
+      UNIFI_POLL_MS: ${UNIFI_POLL_MS:-500}
       UNIFI_RATE_WINDOW_MS: ${UNIFI_RATE_WINDOW_MS:-2000}
+      STATE_PERSIST_MS: ${STATE_PERSIST_MS:-15000}
       UNIFI_SNMP_HOST: ${UNIFI_SNMP_HOST:-}
       UNIFI_SNMP_PORT: ${UNIFI_SNMP_PORT:-161}
       UNIFI_SNMP_USER: ${UNIFI_SNMP_USER:-}
@@ -58,7 +60,7 @@ services:
       - /tmp:size=16m,mode=1777
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8787/healthz"]
-      interval: 15s
+      interval: 30s
       timeout: 5s
       start_period: 10s
       retries: 3

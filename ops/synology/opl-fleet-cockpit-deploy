@@ -403,6 +403,15 @@ installation_status() {
   container_status=$(docker_command inspect --format '{{.State.Status}}' "$container_id")
   container_running=$(docker_command inspect --format '{{.State.Running}}' "$container_id")
   container_started_at=$(docker_command inspect --format '{{.State.StartedAt}}' "$container_id")
+  container_finished_at=$(docker_command inspect --format '{{.State.FinishedAt}}' "$container_id")
+  restart_count=$(docker_command inspect --format '{{.RestartCount}}' "$container_id")
+  exit_code=$(docker_command inspect --format '{{.State.ExitCode}}' "$container_id")
+  oom_killed=$(docker_command inspect --format '{{.State.OOMKilled}}' "$container_id")
+  health_status=$(docker_command inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id")
+  failing_streak=$(docker_command inspect --format '{{if .State.Health}}{{.State.Health.FailingStreak}}{{else}}0{{end}}' "$container_id")
+  printf '%s\n' "$restart_count" | grep -E '^[0-9]+$' >/dev/null || restart_count=0
+  printf '%s\n' "$exit_code" | grep -E '^-?[0-9]+$' >/dev/null || exit_code=0
+  printf '%s\n' "$failing_streak" | grep -E '^[0-9]+$' >/dev/null || failing_streak=0
   restart_policy=$(docker_command inspect --format '{{.HostConfig.RestartPolicy.Name}}' "$container_id")
   data_mount=$(
     docker_command inspect --format '{{json .Mounts}}' "$container_id" |
@@ -457,9 +466,15 @@ installation_status() {
       --arg containerStatus "$container_status" \
       --arg containerRunning "$container_running" \
       --arg containerStartedAt "$container_started_at" \
+      --arg containerFinishedAt "$container_finished_at" \
+      --arg oomKilled "$oom_killed" \
+      --arg healthStatus "$health_status" \
       --arg restartPolicy "$restart_policy" \
       --arg expectedDataVolume "$expected_data_volume" \
       --arg deployedAt "$deployed_at" \
+      --argjson restartCount "$restart_count" \
+      --argjson exitCode "$exit_code" \
+      --argjson failingStreak "$failing_streak" \
       --argjson hostBootEpoch "$host_boot_epoch" \
       --argjson dataMount "$data_mount" \
       --argjson repoDigests "$repo_digests" \
@@ -527,6 +542,17 @@ installation_status() {
               running: ($containerRunning == "true"),
               restartPolicy: $restartPolicy,
               startedAt: $containerStartedAt,
+              finishedAt: (
+                if $containerFinishedAt == "" or ($containerFinishedAt | startswith("0001-01-01T00:00:00"))
+                then null
+                else $containerFinishedAt
+                end
+              ),
+              restartCount: $restartCount,
+              exitCode: $exitCode,
+              oomKilled: ($oomKilled == "true"),
+              healthStatus: $healthStatus,
+              failingStreak: $failingStreak,
               dataMount: $dataMount
             },
             health: $health,

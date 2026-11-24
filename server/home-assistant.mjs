@@ -62,7 +62,11 @@ export class HomeAssistantBridge {
       body: JSON.stringify({ state: String(state), attributes }),
       signal: AbortSignal.timeout(this.timeoutMs),
     });
-    if (!response.ok) throw new Error(`Home Assistant returned HTTP ${response.status}`);
+    try {
+      if (!response.ok) throw new Error(`Home Assistant returned HTTP ${response.status}`);
+    } finally {
+      await response.body?.cancel?.().catch(() => undefined);
+    }
   }
 }
 

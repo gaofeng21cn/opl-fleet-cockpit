@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   bindPairedIdentity,
   buildDashboard,
+  buildHealthSummary,
   freshness,
   networkFreshness,
   normalizeSnapshot,
@@ -412,4 +413,44 @@ test("future generated timestamps are clamped to receipt time", () => {
   const receivedAt = new Date("2026-07-25T00:00:00.000Z");
   const snapshot = normalizeSnapshot("machine", { generatedAt: "2030-01-01T00:00:00.000Z" }, receivedAt);
   assert.equal(snapshot.generatedAt, receivedAt.toISOString());
+});
+
+test("buildHealthSummary matches buildDashboard across live, stale, error, and expired states", () => {
+  const now = new Date("2026-07-25T00:10:00.000Z");
+  const options = { now, liveAfterSeconds: 30, staleAfterSeconds: 300 };
+  const cases = [
+    {
+      machines: new Map([
+        ["live", normalizeSnapshot("live", { generatedAt: now }, now)],
+        ["expired", normalizeSnapshot("expired", { generatedAt: "2026-07-25T00:00:00.000Z" }, now)],
+      ]),
+      network: { status: "live", updatedAt: now.toISOString() },
+    },
+    {
+      machines: new Map([
+        ["stale", normalizeSnapshot("stale", { generatedAt: "2026-07-25T00:09:00.000Z" }, now)],
+      ]),
+      network: { status: "live", updatedAt: now.toISOString() },
+    },
+    {
+      machines: new Map([
+        ["errored", normalizeSnapshot("errored", { generatedAt: now, status: "error" }, now)],
+      ]),
+      network: { status: "stale", updatedAt: "2026-07-25T00:08:00.000Z" },
+    },
+    {
+      machines: new Map(),
+      network: { status: "error", error: "offline" },
+    },
+  ];
+
+  for (const state of cases) {
+    const dashboard = buildDashboard({ ...state, history: [], demo: false }, options);
+    assert.deepEqual(buildHealthSummary(state, options), {
+      overallStatus: dashboard.overallStatus,
+      networkStatus: dashboard.network.status,
+      codexStatus: dashboard.codex.status,
+      machineCount: dashboard.codex.machineCount,
+    });
+  }
 });

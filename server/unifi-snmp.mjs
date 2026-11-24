@@ -2,6 +2,7 @@ import snmp from "net-snmp";
 import { measureTcpLatency } from "./latency-probe.mjs";
 
 const IF_X_TABLE = "1.3.6.1.2.1.31.1.1";
+const IF_X_ENTRY = "1.3.6.1.2.1.31.1.1.1";
 const IF_X_COLUMNS = [1, 6, 10, 15, 18];
 const IF_TABLE_ENTRY = "1.3.6.1.2.1.2.2.1";
 const IP_NET_TO_MEDIA_TABLE = "1.3.6.1.2.1.4.22";
@@ -69,7 +70,7 @@ export function createUnifiSnmpPoller(config, initialClient) {
     if (waitForResult) await request;
   }
 
-  return async function poll() {
+  async function poll() {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const current = await readInterfaces();
       const selected = resolveWanInterfaces(current, config.interfaces);
@@ -113,7 +114,12 @@ export function createUnifiSnmpPoller(config, initialClient) {
       }
     }
     throw new Error("SNMP failed to establish a stable counter baseline");
+  }
+
+  poll.close = () => {
+    client.close?.();
   };
+  return poll;
 }
 
 function trimRateWindow(samples, cutoffMs) {
@@ -298,28 +304,56 @@ export class NetSnmpClient {
   constructor(config, session) {
     this.interfaceSelectors = config.interfaces || [];
     this.discoverAddresses = config.discoverAddresses || this.interfaceSelectors.some((selector) => String(selector).trim().toLowerCase().startsWith("cidr:"));
+    this.topologyRefreshMs = Math.max(1000, Number(config.topologyRefreshMs) || 60_000);
+    this.cachedTopology = null;
+    this.sessionErrored = false;
     if (session) {
       this.session = session;
-      return;
+    } else {
+      const authProtocol = protocol(snmp.AuthProtocols, config.authProtocol, "authentication");
+      const privProtocol = protocol(snmp.PrivProtocols, config.privProtocol, "privacy");
+      this.session = snmp.createV3Session(config.host, {
+        name: config.user,
+        level: snmp.SecurityLevel.authPriv,
+        authProtocol,
+        authKey: config.authPassword,
+        privProtocol,
+        privKey: config.privPassword || config.authPassword,
+      }, {
+        port: config.port,
+        retries: 1,
+        timeout: config.timeoutMs,
+        transport: "udp4",
+      });
     }
-    const authProtocol = protocol(snmp.AuthProtocols, config.authProtocol, "authentication");
-    const privProtocol = protocol(snmp.PrivProtocols, config.privProtocol, "privacy");
-    this.session = snmp.createV3Session(config.host, {
-      name: config.user,
-      level: snmp.SecurityLevel.authPriv,
-      authProtocol,
-      authKey: config.authPassword,
-      privProtocol,
-      privKey: config.privPassword || config.authPassword,
-    }, {
-      port: config.port,
-      retries: 1,
-      timeout: config.timeoutMs,
-      transport: "udp4",
-    });
+    if (typeof this.session?.on === "function") {
+      this.session.on("error", (error) => {
+        this.sessionErrored = true;
+        this.cachedTopology = null;
+        console.warn("SNMP session error:", error?.message || error);
+      });
+    }
   }
 
   async readInterfaces() {
+    if (
+      this.interfaceSelectors.length > 0
+      && typeof this.session?.get === "function"
+      && this.cachedTopology
+      && !this.sessionErrored
+      && Date.now() - this.cachedTopology.refreshedAt < this.topologyRefreshMs
+    ) {
+      try {
+        return await this.readTargetedInterfaces();
+      } catch (error) {
+        this.cachedTopology = null;
+        if (error?.code !== "SNMP_TOPOLOGY_STALE") throw error;
+      }
+    }
+    return this.readFullInterfaceTable();
+  }
+
+  async readFullInterfaceTable() {
     const table = await new Promise((resolve, reject) => {
       this.session.tableColumns(IF_X_TABLE, IF_X_COLUMNS, 20, (error, table) => {
         if (error) return reject(error);
@@ -345,7 +379,104 @@ export class NetSnmpClient {
         return fallback ? { ...entry, ...fallback } : entry;
       });
     }
+    const resolvedSelected = this.interfaceSelectors.length
+      ? resolveWanInterfaces({ interfaces }, this.interfaceSelectors)
+      : [];
+    if (
+      resolvedSelected.length > 0
+      && typeof this.session?.get === "function"
+      && resolvedSelected.every((entry) => entry.counterBits === 64 || entry.counterBits === 32)
+    ) {
+      const selectedIndexes = new Set(resolvedSelected.map((entry) => entry.index));
+      this.cachedTopology = {
+        refreshedAt: Date.now(),
+        selected: resolvedSelected.map((entry) => ({
+          index: entry.index,
+          name: entry.name,
+          alias: entry.alias,
+          speedMbps: entry.speedMbps,
+          counterBits: entry.counterBits,
+          ...(entry.addresses ? { addresses: entry.addresses } : {}),
+        })),
+        otherInterfaces: interfaces
+          .filter((entry) => !selectedIndexes.has(entry.index))
+          .map(({ index, name, alias, speedMbps, addresses }) => ({
+            index,
+            name,
+            alias,
+            inOctets: null,
+            outOctets: null,
+            counterBits: null,
+            speedMbps,
+            ...(addresses ? { addresses } : {}),
+          })),
+      };
+      this.sessionErrored = false;
+    } else {
+      this.cachedTopology = null;
+    }
     return { sampledAt: new Date(), interfaces };
+  }
+
+  readTargetedInterfaces() {
+    const topology = this.cachedTopology;
+    const oids = topology.selected.flatMap((entry) => (
+      entry.counterBits === 64
+        ? [
+            `${IF_X_ENTRY}.1.${entry.index}`,
+            `${IF_X_ENTRY}.6.${entry.index}`,
+            `${IF_X_ENTRY}.10.${entry.index}`,
+          ]
+        : [
+            `${IF_X_ENTRY}.1.${entry.index}`,
+            `${IF_TABLE_ENTRY}.10.${entry.index}`,
+            `${IF_TABLE_ENTRY}.16.${entry.index}`,
+          ]
+    ));
+    return new Promise((resolve, reject) => {
+      this.session.get(oids, (error, varbinds) => {
+        if (error) return reject(error);
+        try {
+          if (!Array.isArray(varbinds) || varbinds.length < topology.selected.length * 3) {
+            throw topologyStaleError("SNMP targeted response was incomplete");
+          }
+          const updatedSelected = topology.selected.map((entry, position) => {
+            const nameVarbind = varbinds[position * 3];
+            const inboundVarbind = varbinds[position * 3 + 1];
+            const outboundVarbind = varbinds[position * 3 + 2];
+            for (const varbind of [nameVarbind, inboundVarbind, outboundVarbind]) {
+              if (!varbind || snmp.isVarbindError(varbind)) {
+                throw topologyStaleError(`SNMP targeted varbind error for interface ${entry.index}`);
+              }
+            }
+            const currentName = text(nameVarbind.value);
+            if (currentName !== entry.name) {
+              throw topologyStaleError(`SNMP interface ${entry.index} changed from ${entry.name} to ${currentName}`);
+            }
+            const parseCounter = entry.counterBits === 64 ? counter64 : counter32;
+            let inOctets;
+            let outOctets;
+            try {
+              inOctets = parseCounter(inboundVarbind.value);
+              outOctets = parseCounter(outboundVarbind.value);
+            } catch (parseError) {
+              throw topologyStaleError(parseError.message);
+            }
+            return {
+              ...entry,
+              inOctets,
+              outOctets,
+            };
+          });
+          resolve({
+            sampledAt: new Date(),
+            interfaces: [...updatedSelected, ...topology.otherInterfaces],
+          });
+        } catch (parseError) {
+          reject(parseError);
+        }
+      });
+    });
   }
 
   readCounter32(interfaces) {
@@ -401,8 +532,19 @@ export class NetSnmpClient {
   }
 
   close() {
-    this.session.close();
+    this.cachedTopology = null;
+    try {
+      this.session?.close?.();
+    } catch {
+      // ignore close errors on already-closed sessions
+    }
   }
+}
+
+function topologyStaleError(message) {
+  const error = new Error(message);
+  error.code = "SNMP_TOPOLOGY_STALE";
+  return error;
 }
 
 function counter32(value) {

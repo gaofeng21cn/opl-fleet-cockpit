@@ -4,7 +4,7 @@ import {
   randomBytes,
   verify,
 } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const MACHINE_ID = /^[a-zA-Z0-9._-]{1,80}$/;
@@ -215,8 +215,13 @@ export class DevicePairingStore {
     const sequence = ++this.persistSequence;
     this.persistChain = this.persistChain.catch(() => undefined).then(async () => {
       const temporary = `${this.path}.${process.pid}.${sequence}.tmp`;
-      await writeFile(temporary, body, { mode: 0o600 });
-      await rename(temporary, this.path);
+      try {
+        await writeFile(temporary, body, { mode: 0o600 });
+        await rename(temporary, this.path);
+      } catch (error) {
+        await rm(temporary, { force: true }).catch(() => undefined);
+        throw error;
+      }
     });
     return this.persistChain;
   }

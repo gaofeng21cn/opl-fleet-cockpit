@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import {
   calculateThroughput,
   countDynamicClients,
@@ -425,3 +426,98 @@ test("treats an implausible Counter32 decrease as an interface reset", () => {
 function average(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
+
+test("NetSnmpClient attaches a session error listener and clears cached topology on error", async () => {
+  const session = new EventEmitter();
+  let tableCalls = 0;
+  let getCalls = 0;
+  session.tableColumns = (_oid, _cols, _rep, callback) => {
+    tableCalls += 1;
+    callback(null, {
+      30: { 1: Buffer.from("eth8"), 6: 100n, 10: 200n, 15: 1000, 18: Buffer.from("WAN") },
+    });
+  };
+  session.get = (oids, callback) => {
+    getCalls += 1;
+    assert.deepEqual(oids, [
+      "1.3.6.1.2.1.31.1.1.1.1.30",
+      "1.3.6.1.2.1.31.1.1.1.6.30",
+      "1.3.6.1.2.1.31.1.1.1.10.30",
+    ]);
+    callback(null, [
+      { value: Buffer.from("eth8") },
+      { value: 150n },
+      { value: 250n },
+    ]);
+  };
+  const client = new NetSnmpClient({ interfaces: ["eth8"], topologyRefreshMs: 60_000 }, session);
+
+  await client.readInterfaces();
+  assert.equal(tableCalls, 1);
+  assert.equal(getCalls, 0);
+
+  const fast = await client.readInterfaces();
+  assert.equal(tableCalls, 1);
+  assert.equal(getCalls, 1);
+  assert.equal(fast.interfaces.find((entry) => entry.index === 30).inOctets, 150n);
+
+  session.emit("error", new Error("malformed UDP packet"));
+  assert.equal(client.cachedTopology, null);
+
+  await client.readInterfaces();
+  assert.equal(tableCalls, 2);
+});
+
+test("NetSnmpClient uses targeted get for CIDR selectors and falls back when ifName changes", async () => {
+  let tableCalls = 0;
+  let getCalls = 0;
+  let currentName = "eth8";
+  const session = {
+    tableColumns: (oid, _cols, _rep, callback) => {
+      tableCalls += 1;
+      if (oid === "1.3.6.1.2.1.4.20") {
+        callback(null, { a: { 1: "192.168.100.209", 2: 30 }, b: { 1: "192.168.1.1", 2: 51 } });
+        return;
+      }
+      callback(null, {
+        30: { 1: Buffer.from(currentName), 6: 1000n, 10: 2000n, 15: 1000, 18: Buffer.from("WAN") },
+        51: { 1: Buffer.from("br0"), 6: 0n, 10: 0n, 15: 1000, 18: Buffer.from("LAN") },
+      });
+    },
+    get: (_oids, callback) => {
+      getCalls += 1;
+      callback(null, [
+        { value: Buffer.from(currentName) },
+        { value: 2000n },
+        { value: 3000n },
+      ]);
+    },
+  };
+  const client = new NetSnmpClient({ interfaces: ["cidr:192.168.100.0/24"], topologyRefreshMs: 60_000 }, session);
+
+  await client.readInterfaces();
+  assert.equal(tableCalls, 2);
+  assert.equal(getCalls, 0);
+
+  const targeted = await client.readInterfaces();
+  assert.equal(tableCalls, 2);
+  assert.equal(getCalls, 1);
+  assert.equal(resolveWanInterfaces(targeted, ["cidr:192.168.100.0/24"])[0].inOctets, 2000n);
+  assert.equal(selectInterfaces(targeted, ["br0"])[0].index, 51);
+
+  currentName = "eth8-replaced";
+  const refreshed = await client.readInterfaces();
+  assert.equal(tableCalls, 4);
+  assert.equal(getCalls, 2);
+  assert.equal(resolveWanInterfaces(refreshed, ["cidr:192.168.100.0/24"])[0].name, "eth8-replaced");
+});
+
+test("createUnifiSnmpPoller exposes close() to release the underlying client", () => {
+  let closed = false;
+  const poll = createUnifiSnmpPoller({ interfaces: ["eth8"], pollMs: 1 }, {
+    readInterfaces: async () => sample("2026-07-25T00:00:00.000Z", []),
+    close: () => { closed = true; },
+  });
+  poll.close();
+  assert.equal(closed, true);
+});

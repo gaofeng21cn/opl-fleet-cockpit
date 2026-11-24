@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -114,6 +115,40 @@ test("publishes the shared Ambient Ops discovery contract", async () => {
       version: "0.1.5",
     },
   });
+  await publisher.stop();
+  assert.equal(destroyed, true);
+});
+
+test("attaches an error handler to mDNS and bounds stop when unpublish hangs", async () => {
+  const mdns = new EventEmitter();
+  let destroyed = false;
+  const errors = [];
+  const bonjour = {
+    server: { mdns },
+    publish() {
+      return { stop() {} };
+    },
+    unpublishAll() {},
+    destroy() {
+      destroyed = true;
+    },
+  };
+  const publisher = createDiscoveryPublisher({
+    instanceId: "home-ops",
+    name: "Example Home",
+    host: "ambient-nas",
+    port: 8791,
+    interfaceAddress: "192.168.1.170",
+    bonjour,
+    stopTimeoutMs: 50,
+    onError: (error) => errors.push(error),
+  });
+
+  publisher.start();
+  mdns.emit("error", new Error("transient send failure"));
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].message, "transient send failure");
+
   await publisher.stop();
   assert.equal(destroyed, true);
 });

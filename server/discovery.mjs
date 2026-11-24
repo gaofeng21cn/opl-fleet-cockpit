@@ -38,9 +38,13 @@ export function createDiscoveryPublisher({
   version = "0.1.5",
   interfaceAddress = "",
   bonjour = null,
+  onError = defaultDiscoveryErrorHandler,
+  stopTimeoutMs = 2000,
 }) {
   let service = null;
   let client = bonjour;
+  let mdnsErrorAttached = false;
+  const handleError = typeof onError === "function" ? onError : defaultDiscoveryErrorHandler;
 
   return {
     start() {
@@ -49,9 +53,17 @@ export function createDiscoveryPublisher({
       if (!client) {
         // Linux must receive queries sent to the multicast group, not only
         // datagrams addressed to this interface's unicast IP.
-        client = new Bonjour(discoveryAddress
-          ? { bind: "0.0.0.0", interface: discoveryAddress }
-          : {});
+        client = new Bonjour(
+          discoveryAddress
+            ? { bind: "0.0.0.0", interface: discoveryAddress }
+            : {},
+          handleError,
+        );
+      }
+      const mdns = client?.server?.mdns;
+      if (!mdnsErrorAttached && typeof mdns?.on === "function") {
+        mdns.on("error", handleError);
+        mdnsErrorAttached = true;
       }
       service = client.publish({
         name: String(name || "Ambient Ops").slice(0, 63),
@@ -74,14 +86,46 @@ export function createDiscoveryPublisher({
       }
     },
     async stop() {
-      service?.stop?.();
+      try {
+        service?.stop?.();
+      } catch (error) {
+        handleError(error);
+      }
       service = null;
       if (!client) return;
-      await new Promise((resolve) => client.unpublishAll(resolve));
-      client.destroy();
+      const activeClient = client;
       client = null;
+      mdnsErrorAttached = false;
+      try {
+        await new Promise((resolve) => {
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            resolve();
+          };
+          const timer = setTimeout(finish, Math.max(1, Number(stopTimeoutMs) || 2000));
+          try {
+            activeClient.unpublishAll(finish);
+          } catch (error) {
+            handleError(error);
+            finish();
+          }
+        });
+      } finally {
+        try {
+          activeClient.destroy();
+        } catch (error) {
+          handleError(error);
+        }
+      }
     },
   };
+}
+
+function defaultDiscoveryErrorHandler(error) {
+  console.warn("Discovery error:", error?.message || error);
 }
 
 export function normalizeDiscoveryHost(value, fallback = systemHostname()) {
