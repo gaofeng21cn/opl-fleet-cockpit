@@ -17,7 +17,7 @@ LABEL org.opencontainers.image.title="OPL Fleet Cockpit Gateway" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.source="https://github.com/gaofeng21cn/opl-fleet-cockpit"
-ENV NODE_ENV=production PORT=8787 DATA_DIR=/data
+ENV NODE_ENV=production PORT=8787 DATA_DIR=/data NODE_OPTIONS=--max-old-space-size=128
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force

@@ -103,10 +103,11 @@ the installer and its artifact hashes again.
 ## Status evidence
 
 `status` returns sanitized `opl_fleet_cockpit_gateway_status.v1`: configured
-digest, image identity, restart policy, named data volume, public health,
-boot time and reboot recovery. It omits environment values, secrets, volume
-source paths, machine details and raw logs. `compatibilityId` is an output field
-defined by the deployer, not an additional owner.
+digest, image identity, restart policy, restart count, last exit code, OOM flag,
+finish time, healthcheck state, named data volume, public health, boot time and
+reboot recovery. It omits environment values, secrets, volume source paths,
+machine details and raw logs. `compatibilityId` is an output field defined by
+the deployer, not an additional owner.
 
 Reboot recovery is verified only when the release was deployed before the most
 recent host boot and the current container started afterward. A healthy release

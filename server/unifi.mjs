@@ -1,13 +1,42 @@
 import http from "node:http";
 import https from "node:https";
 
+const httpsAgents = new Map();
+const caAgentIds = new WeakMap();
+let nextCaId = 1;
+
+function getHttpsAgent({ allowSelfSigned = false, ca } = {}) {
+  let caKey = "";
+  if (typeof ca === "string") {
+    caKey = `s:${ca}`;
+  } else if (ca && typeof ca === "object") {
+    let id = caAgentIds.get(ca);
+    if (!id) {
+      id = nextCaId++;
+      caAgentIds.set(ca, id);
+    }
+    caKey = `o:${id}`;
+  }
+  const key = `${allowSelfSigned ? "1" : "0"}:${caKey}`;
+  let agent = httpsAgents.get(key);
+  if (!agent) {
+    agent = new https.Agent({
+      ...tlsAgentOptions({ allowSelfSigned, ca }),
+      keepAlive: true,
+      maxSockets: 2,
+    });
+    httpsAgents.set(key, agent);
+  }
+  return agent;
+}
+
 function getJson(url, apiKey, allowSelfSigned, ca) {
   return new Promise((resolve, reject) => {
     const target = new URL(url);
     const client = target.protocol === "http:" ? http : https;
     const request = client.get(target, {
       headers: { "X-API-KEY": apiKey, Accept: "application/json" },
-      agent: target.protocol === "https:" ? new https.Agent(tlsAgentOptions({ allowSelfSigned, ca })) : undefined,
+      agent: target.protocol === "https:" ? getHttpsAgent({ allowSelfSigned, ca }) : undefined,
       timeout: 5000,
     }, (response) => {
       let body = "";

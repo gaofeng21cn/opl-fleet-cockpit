@@ -343,6 +343,33 @@ function historyForMachine(machineHistory, machineId) {
   return Array.isArray(history) ? history : [];
 }
 
+export function buildHealthSummary({ machines, network }, options = {}) {
+  const now = options.now || new Date();
+  const liveAfterSeconds = options.liveAfterSeconds || 30;
+  const staleAfterSeconds = options.staleAfterSeconds || 300;
+  let machineCount = 0;
+  let liveMachines = 0;
+  let staleMachines = 0;
+  for (const snapshot of machines.values()) {
+    const current = freshness(snapshot, now, liveAfterSeconds, staleAfterSeconds);
+    if (current.ageSeconds > staleAfterSeconds) continue;
+    machineCount += 1;
+    if (current.status === "live") liveMachines += 1;
+    else if (current.status === "stale") staleMachines += 1;
+  }
+  const codexStatus = liveMachines > 0 ? "live" : staleMachines > 0 ? "stale" : "error";
+  const networkStatus = networkFreshness(network, now, liveAfterSeconds, staleAfterSeconds).status;
+  const overallStatus = networkStatus === "error" || codexStatus === "error"
+    ? "error"
+    : networkStatus === "stale" || codexStatus === "stale" ? "stale" : "live";
+  return {
+    overallStatus,
+    networkStatus,
+    codexStatus,
+    machineCount,
+  };
+}
+
 export function networkFreshness(network, now, liveAfterSeconds, staleAfterSeconds) {
   if (!network.updatedAt) return { ...network, status: network.status || "error", ageSeconds: null };
   const ageSeconds = Math.max(0, Math.round((now.valueOf() - new Date(network.updatedAt).valueOf()) / 1000));

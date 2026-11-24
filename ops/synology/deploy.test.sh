@@ -137,6 +137,12 @@ case "$command_name" in
       '{{.State.Status}}') printf '%s\n' 'running' ;;
       '{{.State.Running}}') printf '%s\n' 'true' ;;
       '{{.State.StartedAt}}') printf '%s\n' '2026-08-03T06:00:00.123456789Z' ;;
+      '{{.State.FinishedAt}}') printf '%s\n' '0001-01-01T00:00:00Z' ;;
+      '{{.RestartCount}}') printf '%s\n' '0' ;;
+      '{{.State.ExitCode}}') printf '%s\n' '0' ;;
+      '{{.State.OOMKilled}}') printf '%s\n' 'false' ;;
+      '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}') printf '%s\n' 'healthy' ;;
+      '{{if .State.Health}}{{.State.Health.FailingStreak}}{{else}}0{{end}}') printf '%s\n' '0' ;;
       '{{.HostConfig.RestartPolicy.Name}}') printf '%s\n' 'unless-stopped' ;;
       '{{json .Mounts}}')
         printf '%s\n' '[{"Type":"volume","Name":"ambient-ops_ambient_ops_data","Source":"/private/docker/path","Destination":"/data","RW":true}]'
@@ -243,6 +249,12 @@ printf '%s\n' "$status" | jq -e \
       and .image.indexDigest == $digest
       and .image.digestVerified == true
       and .container.name == "opl-fleet-cockpit-gateway-1"
+      and .container.restartCount == 0
+      and .container.exitCode == 0
+      and .container.oomKilled == false
+      and .container.finishedAt == null
+      and .container.healthStatus == "healthy"
+      and .container.failingStreak == 0
       and .container.dataMount.name == "ambient-ops_ambient_ops_data"
   ' >/dev/null
 

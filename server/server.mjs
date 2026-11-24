@@ -9,6 +9,7 @@ import { StatusStore } from "./store.mjs";
 import {
   bindPairedIdentity,
   buildDashboard,
+  buildHealthSummary,
   normalizeSnapshot,
   reconcilePairedMachineIdentities,
 } from "./status-model.mjs";
@@ -60,8 +61,9 @@ const config = {
   unifiApiKey: secretEnv("UNIFI_API_KEY"),
   allowSelfSigned: booleanEnv("UNIFI_ALLOW_SELF_SIGNED", false),
   unifiCaFile: process.env.UNIFI_CA_FILE || "",
-  unifiPollMs: numberEnv("UNIFI_POLL_MS", 250),
+  unifiPollMs: numberEnv("UNIFI_POLL_MS", 500),
   unifiRateWindowMs: numberEnv("UNIFI_RATE_WINDOW_MS", 2000),
+  statePersistMs: Math.max(1000, numberEnv("STATE_PERSIST_MS", 15_000)),
   snmpHost: process.env.UNIFI_SNMP_HOST || "",
   snmpPort: numberEnv("UNIFI_SNMP_PORT", 161),
   snmpUser: process.env.UNIFI_SNMP_USER || "",
@@ -96,7 +98,17 @@ const contentTypes = new Map([
   [".png", "image/png"],
   [".webp", "image/webp"],
 ]);
-const store = new StatusStore(config.dataDir);
+process.on("uncaughtExceptionMonitor", (error, origin) => {
+  console.error(`[${new Date().toISOString()}] Fatal ${origin}:`, error);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error(`[${new Date().toISOString()}] Unhandled promise rejection:`, reason);
+});
+
+const store = new StatusStore(config.dataDir, {
+  persistIntervalMs: config.statePersistMs,
+  networkPersistIntervalMs: config.statePersistMs,
+});
 await store.load();
 const petAssets = new PetAssetStore(config.dataDir);
 await petAssets.load();
@@ -161,6 +173,10 @@ function dashboard() {
 }
 
 let polling = false;
+let shuttingDown = false;
+let sourceTimer = null;
+let consecutiveSourceErrors = 0;
+
 async function updateSources() {
   if (config.demo) {
     updateDemo(store);
@@ -178,26 +194,62 @@ async function updateSources() {
         allowSelfSigned: config.allowSelfSigned,
         ca: unifiCa,
       });
-    await store.setNetwork(network);
+    consecutiveSourceErrors = 0;
+    try {
+      await store.setNetwork(network);
+    } catch (persistError) {
+      console.error("Failed to persist network state:", persistError?.message || persistError);
+    }
   } catch (error) {
-    await store.setNetwork({
-      ...store.network,
-      status: store.network.updatedAt ? "stale" : "error",
-      source: pollUnifiSnmp ? "unifi-snmp-v3" : "unifi",
-      error: error.message,
-    }, { recordHistory: false });
+    consecutiveSourceErrors += 1;
+    try {
+      await store.setNetwork({
+        ...store.network,
+        status: store.network.updatedAt ? "stale" : "error",
+        source: pollUnifiSnmp ? "unifi-snmp-v3" : "unifi",
+        error: error.message,
+      }, { recordHistory: false });
+    } catch (persistError) {
+      console.error("Failed to persist network error state:", persistError?.message || persistError);
+    }
   } finally {
     polling = false;
   }
 }
+
 const sourceIntervalMs = pollUnifiSnmp
   ? Math.max(200, config.unifiPollMs)
   : Math.max(1000, config.unifiPollMs);
-const sourceTimer = setInterval(updateSources, sourceIntervalMs);
-sourceTimer.unref();
-updateSources();
 
-const machinePruneTimer = setInterval(pruneStaleMachines, Math.min(30_000, config.staleAfterSeconds * 1000));
+function nextSourcePollDelayMs() {
+  if (consecutiveSourceErrors <= 0) return sourceIntervalMs;
+  return Math.min(15_000, Math.max(1000, sourceIntervalMs) * (2 ** Math.min(consecutiveSourceErrors - 1, 4)));
+}
+
+function scheduleSourcePoll() {
+  if (shuttingDown) return;
+  sourceTimer = setTimeout(runSourcePoll, nextSourcePollDelayMs());
+  sourceTimer.unref();
+}
+
+function runSourcePoll() {
+  sourceTimer = null;
+  updateSources()
+    .catch((error) => {
+      console.error("Unexpected source poll error:", error);
+    })
+    .finally(() => {
+      scheduleSourcePoll();
+    });
+}
+runSourcePoll();
+
+function schedulePruneStaleMachines() {
+  pruneStaleMachines().catch((error) => {
+    console.error("Failed to prune stale machines:", error);
+  });
+}
+const machinePruneTimer = setInterval(schedulePruneStaleMachines, Math.min(30_000, config.staleAfterSeconds * 1000));
 machinePruneTimer.unref();
 
 const fleetHistoryTimer = setInterval(scheduleFleetHistorySample, 10_000);
@@ -207,22 +259,35 @@ scheduleFleetHistorySample();
 async function syncHomeAssistant() {
   await haBridge.sync(dashboard());
 }
-const haTimer = setInterval(syncHomeAssistant, Math.max(5000, config.haSyncMs));
+function scheduleHomeAssistantSync() {
+  syncHomeAssistant().catch((error) => {
+    console.error("Failed to sync Home Assistant:", error);
+  });
+}
+const haTimer = setInterval(scheduleHomeAssistantSync, Math.max(5000, config.haSyncMs));
 haTimer.unref();
-syncHomeAssistant();
+scheduleHomeAssistantSync();
 
 const server = createServer(async (request, response) => {
-  const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
   try {
+    let url;
+    try {
+      url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
+    } catch {
+      throw httpError(400, "Invalid request URL");
+    }
     if (request.method === "GET" && url.pathname === "/healthz") {
-      const current = dashboard();
+      const health = buildHealthSummary({
+        machines: store.machines,
+        network: store.network,
+      }, config);
       return await json(response, 200, {
         ok: true,
         mode: config.demo ? "demo" : "live",
-        status: current.overallStatus,
-        network: current.network.status,
-        codex: current.codex.status,
-        machines: current.codex.machineCount,
+        status: health.overallStatus,
+        network: health.networkStatus,
+        codex: health.codexStatus,
+        machines: health.machineCount,
         devicePairing: config.pairingEnabled,
         pairedDevices: pairingStore.pairedDeviceCount,
         homeAssistant: haBridge.health(),
@@ -320,17 +385,25 @@ const server = createServer(async (request, response) => {
       && url.pathname.match(/^\/api\/v1\/pets\/([a-f0-9]{64})\.webp$/);
     if (petReadMatch) {
       const hash = petReadMatch[1];
-      const body = await petAssets.read(hash);
-      const headers = {
+      const etag = `"${hash}"`;
+      const baseHeaders = {
         "content-type": "image/webp",
-        "content-length": body.length,
         "cache-control": "public, max-age=31536000, immutable",
-        etag: `"${hash}"`,
+        etag,
         "referrer-policy": "no-referrer",
         "x-content-type-options": "nosniff",
         "x-frame-options": "SAMEORIGIN",
       };
-      if (request.headers["if-none-match"] === headers.etag) {
+      if (petAssets.has(hash) && request.headers["if-none-match"] === etag) {
+        response.writeHead(304, baseHeaders);
+        return response.end();
+      }
+      const body = await petAssets.read(hash);
+      const headers = {
+        ...baseHeaders,
+        "content-length": body.length,
+      };
+      if (request.headers["if-none-match"] === etag) {
         response.writeHead(304, headers);
         return response.end();
       }
@@ -415,6 +488,13 @@ const server = createServer(async (request, response) => {
   }
 });
 
+server.requestTimeout = 30_000;
+server.headersTimeout = 10_000;
+server.keepAliveTimeout = 15_000;
+server.on("error", (error) => {
+  console.error("HTTP server error:", error);
+});
+
 const discovery = createDiscoveryPublisher({
   enabled: config.discoveryEnabled,
   instanceId,
@@ -435,15 +515,27 @@ server.listen(config.port, "0.0.0.0", () => {
 });
 
 async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log(`Received ${signal}, shutting down`);
-  clearInterval(sourceTimer);
+  if (sourceTimer) clearTimeout(sourceTimer);
   clearInterval(machinePruneTimer);
   clearInterval(fleetHistoryTimer);
   clearInterval(haTimer);
+  pollUnifiSnmp?.close?.();
   server.close();
+  server.closeIdleConnections?.();
+  let shutdownTimer;
   try {
-    await Promise.all([store.flush(), pairingStore.flush(), discovery.stop()]);
+    await Promise.race([
+      Promise.allSettled([store.flush(), pairingStore.flush(), discovery.stop()]),
+      new Promise((resolve) => {
+        shutdownTimer = setTimeout(resolve, 5000);
+        shutdownTimer.unref?.();
+      }),
+    ]);
   } finally {
+    if (shutdownTimer) clearTimeout(shutdownTimer);
     process.exit(0);
   }
 }

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { StatusStore } from "./store.mjs";
@@ -101,6 +101,61 @@ test("loads legacy machine state whose bundled pet has no asset hash", async () 
 
     assert.equal(store.machines.get("old-mac").pet.id, "ledger-owl");
     assert.equal(store.machines.get("old-mac").pet.assetHash, undefined);
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
+});
+
+test("coalesces frequent updates when persistIntervalMs is configured", async () => {
+  const dataDir = await mkdtemp(join(tmpdir(), "ambient-ops-store-"));
+  try {
+    const store = new StatusStore(dataDir, { persistIntervalMs: 500, networkPersistIntervalMs: 500 });
+    await store.load();
+    await store.setMachine(machine("live", "2026-07-25T00:00:00.000Z", 10));
+    assert.equal(store.persistSequence, 1);
+
+    await store.setMachine(machine("live", "2026-07-25T00:00:05.000Z", 12));
+    await store.recordFleetHistory({ at: "2026-07-25T00:00:05.000Z", tps: 12 });
+    await store.setNetwork({
+      status: "live",
+      source: "unifi-snmp-v3",
+      downloadMbps: 50,
+      uploadMbps: 10,
+      updatedAt: "2026-07-25T00:00:05.000Z",
+    });
+
+    assert.equal(store.persistSequence, 1);
+    await store.flush();
+    assert.equal(store.persistSequence, 2);
+
+    const savedText = await readFile(store.path, "utf8");
+    assert.equal(savedText.includes("\n"), false);
+    const reloaded = new StatusStore(dataDir);
+    await reloaded.load();
+    assert.equal(reloaded.machines.get("live").oneMinute.tps, 12);
+    assert.equal(reloaded.fleetHistory.length, 1);
+    assert.equal(reloaded.network.downloadMbps, 50);
+  } finally {
+    await rm(dataDir, { recursive: true, force: true });
+  }
+});
+
+test("cleans up temporary file and prevents unhandled rejection on scheduled persist error", async () => {
+  const dataDir = await mkdtemp(join(tmpdir(), "ambient-ops-store-"));
+  try {
+    const store = new StatusStore(dataDir, { persistIntervalMs: 10, networkPersistIntervalMs: 10 });
+    store.path = join(dataDir, "missing-dir", "state.json");
+    await store.setNetwork({
+      status: "live",
+      source: "unifi-snmp-v3",
+      downloadMbps: 5,
+      uploadMbps: 1,
+      updatedAt: "2026-07-25T00:00:00.000Z",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    assert.equal(store.dirty, true);
+    assert.deepEqual(await readdir(dataDir), []);
   } finally {
     await rm(dataDir, { recursive: true, force: true });
   }

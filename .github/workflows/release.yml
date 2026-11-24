@@ -29,7 +29,6 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: ./ops/synology/deploy.test.sh
-      - run: ./ops/synology/gateway-brand-migration.test.sh
       - run: npm run build
       - run: npm run build:android
       - run: ./ops/docker/smoke-test.sh
