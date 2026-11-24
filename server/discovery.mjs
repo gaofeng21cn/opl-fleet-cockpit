@@ -105,8 +105,7 @@ export function createDiscoveryPublisher({
             clearTimeout(timer);
             resolve();
           };
-          const timer = setTimeout(finish, Math.max(100, Number(stopTimeoutMs) || 2000));
-          timer.unref?.();
+          const timer = setTimeout(finish, Math.max(1, Number(stopTimeoutMs) || 2000));
           try {
             activeClient.unpublishAll(finish);
           } catch (error) {
