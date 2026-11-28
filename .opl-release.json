@@ -1,0 +1,47 @@
+{
+  "schema_version": "opl.release.v1",
+  "subject_id": "opl-fleet-cockpit",
+  "kind": "product",
+  "repository": "gaofeng21cn/opl-fleet-cockpit",
+  "schedule": "daily_patch",
+  "trigger": "tag",
+  "tag_prefix": "v",
+  "delivery_paths": [
+    "src",
+    "server",
+    "public",
+    "android-kiosk",
+    "ops/docker",
+    "Dockerfile",
+    "package.json",
+    "package-lock.json",
+    ".github/workflows/release.yml"
+  ],
+  "version_files": [
+    {
+      "path": "package.json",
+      "kind": "json"
+    },
+    {
+      "path": "package-lock.json",
+      "kind": "json"
+    }
+  ],
+  "prepare": [
+    [
+      "node",
+      "scripts/prepare-product-release.mjs"
+    ]
+  ],
+  "verify": [],
+  "lanes": [
+    {
+      "lane": "stable",
+      "workflow": "release.yml",
+      "primary": true,
+      "channel": {
+        "kind": "github_release"
+      }
+    }
+  ]
+}
